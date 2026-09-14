@@ -225,12 +225,12 @@ These four tools help you review your course choices before registration:
 
 | Tool | What it does |
 |---|---|
-| `obs_get_registration_draft()` | Reads your saved draft with CRNs, eligibility reasons, and the available timetable. |
-| `obs_get_elective_group(group_id)` | Shows which courses can fill an elective slot, their current sections and meeting times, and whether you can take them. |
-| `obs_validate_registration_plan(crns)` | Checks a proposed selection for conflicts and prerequisites, elective coverage, graduation progress, and the course chains you would keep or delay. |
-| `obs_get_grade_distribution(course_code, year, term_code)` | Shows how many students received each published letter grade in previous terms, with percentages and the exact group of course codes reported by OBS. |
+| `obs_get_registration_draft()` | Reads your saved draft with CRNs, eligibility status, failure reasons and the draft timetable when available. |
+| `obs_get_elective_group(group_id)` | Shows courses that can fill an elective group, current sections, CRNs, meeting times and eligibility. |
+| `obs_validate_registration_plan(crns)` | Checks CRNs for timetable conflicts, prerequisites, elective requirements, graduation progress and their effect on later courses. |
+| `obs_get_grade_distribution(course_code, year, term_code)` | Shows previous terms' published letter-grade counts and percentages, including the exact course codes OBS reports together. |
 
-They leave your saved draft and registrations unchanged. The plan validator reports missing evidence as `incomplete`; future chains depend on passing with the required grades. See [Registration planning](docs/registration-planning.md) and [Grade distributions](docs/grade-distribution.md) for examples and limits. Grade distributions are public; `year` means the academic ending year, and the term filter is optional.
+These tools leave your saved draft and course registrations unchanged. Missing evidence makes the plan result `incomplete`, even when no definite blocker is found. Later courses depend on completing prerequisites with the required grades. Grade distributions are public. `year` is the academic ending year (2026 = 2025–2026); year and term filters are optional. See [Registration planning](docs/registration-planning.md) and [Grade distributions](docs/grade-distribution.md) for examples and limits.
 
 Tam araç listesi, hazır prompt'lar, kaynak tabloları, Docker, uzak HTTP ve tüm ortam değişkenleri: **[docs/advanced.md](docs/advanced.md)**.
 
