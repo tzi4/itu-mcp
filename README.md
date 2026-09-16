@@ -262,7 +262,9 @@ export NINOVA_COURSE_CACHE_TTL_SECONDS=60
 export NINOVA_REQUEST_DELAY_MS=120
 export NINOVA_SESSION_PERSIST=1
 export NINOVA_ALLOW_UPLOADS=1
-# Kütüphane hesabı araçları için (public katalog araması bunları istemez):
+# Optional local CONNECT proxy provisioned separately by the operator:
+# NINOVA_LIBRARY_PROXY_URL="http://127.0.0.1:18888"
+# Legacy WebPAC compatibility only (the new catalog does not support account tools):
 # NINOVA_LIBRARY_NAME="Soyad, Ad"
 # NINOVA_LIBRARY_ID="öğrenci-numarası"
 # NINOVA_LIBRARY_PIN="ayrı-kütüphane-pin'i"
@@ -272,6 +274,17 @@ export NINOVA_ALLOW_UPLOADS=1
 ```
 
 Tüm değişkenler için `.env.example` ve [docs/advanced.md](docs/advanced.md) dosyalarına bak.
+
+`NINOVA_LIBRARY_PROXY_URL` affects only anonymous HTTPS GET requests to the
+new library catalog. It accepts `http://127.0.0.1:PORT` or `http://[::1]:PORT`,
+with an explicit port between 1024 and 65535. Credentials, queries and extra
+path components are rejected. Provision the proxy separately; this setting
+does not install a service or change VPN configuration. Without it, the catalog
+connects directly. In either case, the new catalog client ignores `HTTP_PROXY`,
+`HTTPS_PROXY`, `ALL_PROXY` and `.netrc`. TLS verification stays enabled, and a
+proxy failure never triggers another route. Legacy WebPAC account tools and
+other ITU/PaperBridge clients are unaffected. See [Library catalog](docs/library-catalog.md)
+for scope and validation.
 
 ---
 
