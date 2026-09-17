@@ -189,7 +189,7 @@ codex mcp add itu \
     <td>
       <code>obs_auth_status</code> · <code>obs_get_profile</code><br/>
       <code>obs_list_registered_courses</code><br/>
-      <code>obs_get_registration_draft</code><br/>
+      <code>obs_get_registration_draft</code> · <code>obs_save_registration_draft</code><br/>
       <code>obs_get_elective_group</code> · <code>obs_validate_registration_plan</code><br/>
       <code>obs_get_course_grades</code> · <code>obs_get_attendance</code><br/>
       <code>obs_get_advisor</code> · <code>obs_download_transcript</code><br/>
@@ -231,6 +231,8 @@ These four tools help you review your course choices before registration:
 | `obs_get_grade_distribution(course_code, year, term_code)` | Shows previous terms' published letter-grade counts and percentages, including the exact course codes OBS reports together. |
 
 These tools leave your saved draft and course registrations unchanged. Missing evidence makes the plan result `incomplete`, even when no definite blocker is found. Later courses depend on completing prerequisites with the required grades. Grade distributions are public. `year` is the academic ending year (2026 = 2025–2026); year and term filters are optional. See [Registration planning](docs/registration-planning.md) and [Grade distributions](docs/grade-distribution.md) for examples and limits.
+
+Use `obs_save_registration_draft(crns, confirm=true)` to replace the saved draft with a complete CRN list after explicitly confirming that list and the change. This is disabled by default; enable it with `NINOVA_OBS_REGISTRATION_WRITES=1` in the server environment. If the remote server uses a tool allowlist, include this tool. It rereads the draft to verify the result and never retries an uncertain save automatically. It does not enroll in or drop courses.
 
 Tam araç listesi, hazır prompt'lar, kaynak tabloları, Docker, uzak HTTP ve tüm ortam değişkenleri: **[docs/advanced.md](docs/advanced.md)**.
 
