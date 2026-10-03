@@ -155,6 +155,7 @@ codex mcp add itu \
 - *"OBS'te 2025-2026 Bahar kayıtlı derslerim neler?"*
 - *"CEN 354E ara notlarım?"*
 - *"Danışmanım kim? Staj bilgilerimi göster."*
+- *"Show the status of my help ticket and the university's response."*
 - *"Transkript PDF indir."*
 - *"Son okunmamış mesajlarımı listele ve seçtiğim PDF ekini özetle."*
 - *"Gelecek dönem hangi dersleri almalıyım?"*<sup>✨</sup>
@@ -193,7 +194,8 @@ codex mcp add itu \
       <code>obs_get_elective_group</code> · <code>obs_validate_registration_plan</code><br/>
       <code>obs_get_course_grades</code> · <code>obs_get_attendance</code><br/>
       <code>obs_get_advisor</code> · <code>obs_download_transcript</code><br/>
-      <code>get_cafeteria_menu</code> · <code>obs_get_notifications</code>
+      <code>get_cafeteria_menu</code> · <code>obs_get_notifications</code><br/>
+      <code>obs_get_help_tickets</code> · <code>get_help_ticket</code>
     </td>
     <td>
       <code>get_public_course_schedule</code> · <code>get_public_exam_schedule</code><br/>
