@@ -17,6 +17,10 @@ I maintain this repository as an **independently developed fork of
 [Hikmet Gultekin / yatuk](https://github.com/yatuk), the creator of ITU MCP. I've
 kept the original Git history, MIT license and project attribution.
 
+I maintain this fork around the setup I use: ITU campus tools and PaperBridge
+research workflows in one MCP server. I also aim to contribute suitable
+university-tool improvements back to the original project.
+
 In this fork, I've brought together OBS reliability fixes, registration planning,
 course schedule filters, help ticket details and PaperBridge. The application
 sources match the version I was running on my Raspberry Pi on
