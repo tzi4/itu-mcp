@@ -21,6 +21,7 @@ from .remote_security import (
     configured_api_key,
 )
 from .server import (
+    LOCAL_TOOL_NAMES,
     MAIL_TOOL_NAMES,
     OBS_REGISTRATION_WRITE_TOOL_NAMES,
     REMOTE_TOOL_NAMES,
@@ -33,6 +34,9 @@ from .server import (
     register_prompts,
     register_resources,
     register_tools,
+)
+from .remote_files import (
+    REMOTE_FILE_INSTRUCTIONS, REMOTE_FILE_TOOLS, REMOTE_WRITE_TOOLS, RemoteNinovaMcpApp,
 )
 
 
@@ -49,10 +53,16 @@ def _split_csv_env(name: str) -> list[str]:
 
 
 def _selected_remote_tool_names() -> list[str]:
+    """Apply opt-in sensitive-tool gates and an optional server allowlist."""
+    eligible = set(REMOTE_TOOL_NAMES)
+    if _env_flag("NINOVA_REMOTE_ENABLE_FILES"):
+        eligible.update(REMOTE_FILE_TOOLS)
+    if _env_flag("NINOVA_REMOTE_ENABLE_WRITES"):
+        eligible.update(REMOTE_WRITE_TOOLS)
     available = [
         name
-        for name in REMOTE_TOOL_NAMES
-        if (
+        for name in LOCAL_TOOL_NAMES
+        if name in eligible and (
             _env_flag("NINOVA_REMOTE_ENABLE_MAIL", default=False)
             or name not in MAIL_TOOL_NAMES
         ) and (
@@ -64,11 +74,13 @@ def _selected_remote_tool_names() -> list[str]:
     if not configured:
         return available
 
-    unknown = sorted(set(configured) - set(available))
+    remote_names = set(available)
+    unknown = sorted(set(configured) - remote_names)
     if unknown:
         raise RuntimeError(
             "NINOVA_REMOTE_ALLOWED_TOOLS contains unknown, disabled, or "
-            "remote-excluded tools: " + ", ".join(unknown)
+            "remote-excluded tools: "
+            + ", ".join(unknown)
         )
     allowed = set(configured)
     return [name for name in available if name in allowed]
@@ -120,7 +132,7 @@ def _build_fastmcp(app_logic: NinovaMcpApp, mount_path: str) -> FastMCP:
     port = int(os.getenv("PORT") or os.getenv("NINOVA_REMOTE_PORT") or "8000")
     mcp = FastMCP(
         SERVER_NAME,
-        instructions=SERVER_INSTRUCTIONS,
+        instructions=SERVER_INSTRUCTIONS + REMOTE_FILE_INSTRUCTIONS,
         host=host,
         port=port,
         json_response=True,
@@ -151,7 +163,10 @@ def build_app() -> Starlette:
             "NINOVA_REMOTE_REQUIRE_API_KEY=1 but NINOVA_REMOTE_API_KEY is not set."
         )
 
-    app_logic = NinovaMcpApp()
+    extended = _env_flag("NINOVA_REMOTE_ENABLE_FILES") or _env_flag("NINOVA_REMOTE_ENABLE_WRITES")
+    if extended and not configured_api_key():
+        raise RuntimeError("Remote file/write tools require API-key authentication.")
+    app_logic = RemoteNinovaMcpApp() if extended else NinovaMcpApp()
     mcp_mount_path = _normalize_mount_path(os.getenv("NINOVA_REMOTE_MCP_PATH"), "/mcp")
     mcp = _build_fastmcp(app_logic, mount_path=mcp_mount_path)
     api_key = configured_api_key()

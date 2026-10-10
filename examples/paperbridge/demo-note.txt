@@ -1,0 +1,9 @@
+PaperBridge transport demonstration
+
+Topic: autonomous rocket landing.
+This is an original synthetic fixture, not a scientific publication or literature review.
+Its purpose is to demonstrate that text stored by the server becomes visible to an
+MCP client only when the server returns that text in a fetch tool response.
+
+Example reading-list categories: guidance, navigation, control, and simulation.
+These labels are test data, not evidence about any specific research paper.

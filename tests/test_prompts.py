@@ -103,7 +103,8 @@ class PromptRenderTests(unittest.TestCase):
 class ResourceTests(unittest.TestCase):
     def test_list_resources_matches_metadata(self) -> None:
         resources = asyncio.run(_server().list_resources())
-        self.assertEqual(sorted(str(r.uri) for r in resources), sorted(RESOURCE_URIS))
+        expected = set(RESOURCE_URIS) | {"ui://paperbridge/page-viewer-v12.html"}
+        self.assertEqual({str(r.uri) for r in resources}, expected)
 
     def test_resources_are_concrete_not_templates(self) -> None:
         """Both resources take no parameters, so nothing should be a template."""

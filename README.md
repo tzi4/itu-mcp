@@ -1,339 +1,149 @@
-<!-- mcp-name: io.github.yatuk/itu-mcp -->
+<p align="center"><img src="docs/fork-banner.svg" alt="ITU MCP + PaperBridge by tzi4" width="100%"></p>
 
-<div align="center">
+<p align="center">
+  <a href="https://github.com/tzi4/itu-mcp/actions/workflows/tests.yml"><img src="https://github.com/tzi4/itu-mcp/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <img src="https://img.shields.io/badge/Python-3.11%2B-5b9aff" alt="Python 3.11+">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-5fe0c1" alt="MIT"></a>
+</p>
 
-  <p>
-    <img src="https://raw.githubusercontent.com/yatuk/itu-mcp/main/docs/banner.png" alt="İTÜ MCP" width="100%" />
-  </p>
+# ITU MCP + PaperBridge
 
-  <h1>İTÜ MCP</h1>
+ITU MCP + PaperBridge brings Istanbul Technical University (ITU) courses, campus
+services and academic research together in a single MCP connection. It runs on
+your own device or server.
 
-  <p><em>İTÜ Ninova, OBS, Portal, kampüs servisleri ve kütüphaneyi Claude, Cursor, Codex ve diğer MCP istemcilerine bağla</em></p>
+This repository is an **independently developed fork of
+[yatuk/itu-mcp](https://github.com/yatuk/itu-mcp), maintained by tzi4**. Thanks to
+[Hikmet Gultekin / yatuk](https://github.com/yatuk), the creator of ITU MCP. The
+fork keeps the existing Git history, the MIT license and the reference to the
+original project.
 
-  <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/sürüm-v0.7.2-blue?style=flat-square" alt="Sürüm: v0.7.2" /></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/lisans-MIT-green?style=flat-square" alt="Lisans: MIT" /></a>
-    <a href="https://github.com/yatuk/itu-mcp"><img src="https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white&style=flat-square" alt="Python 3.11+" /></a>
-    <a href="https://yatuk.github.io/mcpradar/"><img src="https://yatuk.github.io/mcpradar/badges/itu-mcp.svg" alt="MCPRadar Security" /></a>
-    <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-sunucu-black?style=flat-square" alt="MCP Sunucu" /></a>
-  </p>
+The fork combines OBS reliability fixes, registration planning, course schedule
+filters, help ticket details and the PaperBridge integration. The application
+sources match the version that ran on the developer's Raspberry Pi on
+October 10, 2026, and the [file manifest](docs/pi-source-20261010.json) lists
+every file. Each user runs it with their own account and storage.
 
-</div>
+## What is ITU MCP?
 
----
+Checking assignments on Ninova, grades on OBS and the dining menu on Portal means
+switching between three tabs. ITU MCP is a small server on your computer that
+lets you ask about all of them in one place, in plain language.
 
-## İTÜ MCP nedir?
+With your credentials (usually `yourname@itu.edu.tr`), it reads data from
+**Ninova** (the course platform), **OBS** (the student information system) and
+**Portal**. Without credentials, it still reaches public sources such as course
+and final exam schedules, building codes, shuttles, sports facilities,
+announcements and the library catalog. It exposes the results as structured tools
+over the [Model Context Protocol](https://modelcontextprotocol.io). You ask
+Claude, and Claude fetches the real data and answers.
 
-Ninova'da ödev, OBS'de not, Portal'da yemek listesi diye üç ayrı sekmede gezinmek can sıkıcı. İTÜ MCP bilgisayarında çalışan küçük bir sunucu, bu sekmelerin hepsini tek bir yerden, doğal dilde sorulabilir hale getiriyor.
-
-Kimlik bilgilerinle (genelde `ad@itu.edu.tr`) **Ninova**, **OBS** ve **Portal** verilerini okuyor. Kimlik bilgisi olmadan da ders/final programı, bina kodları, mekik, spor tesisi, duyuru ve kütüphane kataloğu gibi herkese açık kaynaklara erişiyor. Sonuçları [Model Context Protocol](https://modelcontextprotocol.io) üzerinden yapılandırılmış araçlar olarak sunuyor: Claude'a soruyorsun, o da gerçek veriyi çekip cevap veriyor.
-
-| İhtiyacın | İTÜ MCP cevabı |
+| What you need | How ITU MCP answers |
 |:---|---|
-| "Bu hafta hangi ödevlerin teslimi var?" | Ninova ödev ve teslim tarihi araçları |
-| "X dersinin notları / yoklaması?" | OBS ara not, harf notu ve yoklama |
-| "Transkript / danışman / staj?" | OBS profil, danışman, staj, transkript PDF |
-| "Bugün yemekte ne var / kart bakiyem?" | İTÜ Portal menü, kart ve bildirim araçları |
-| "Finalim ne zaman / boş kontenjan var mı?" | Public OBS final ve ders programı araçları |
-| "Mekik ne zaman / havuz kaçta kapanıyor?" | SKS kampüs hizmeti araçları |
-| "Kütüphanede bu kitap var mı?" | Public katalog arama ve kopya durumu |
-| "Son okunmamış mailimi göster" | Salt okunur İTÜ Mail araçları |
-| "PDF özetle" | İndirme ve `read_resource_text` (PDF/DOCX) |
-| "Ödev yükle" | İsteğe bağlı yükleme, `confirm=true` şart |
+| "Which assignments are due this week?" | Ninova assignment and due-date tools |
+| "Grades or attendance for course X?" | OBS term grades, letter grades and attendance |
+| "Transcript, advisor or internship?" | OBS profile, advisor, internship and transcript PDF |
+| "What's for lunch today? What's my card balance?" | ITU Portal menu, card and notification tools |
+| "When is my final? Are there open seats?" | Public OBS final exam and course schedule tools |
+| "When is the next shuttle? When does the pool close?" | Campus service tools |
+| "Does the library have this book?" | Public catalog search and copy status |
+| "Show my latest unread email" | Read-only ITU Mail tools |
+| "Summarize this PDF" | Download and `read_resource_text` (PDF/DOCX) |
+| "Submit my assignment" | Optional upload, requires `confirm=true` |
 
-> **Önce yerel.** Ninova şifren cihazda kalır, yalnızca İTÜ SSO, Ninova, OBS ve Portal akışlarında kullanılır. Ayrı kütüphane hesabı bilgileri yalnızca resmî kütüphane sunucusuna gönderilir. Üçüncü taraf bir sunucuya kimlik bilgisi depolanmaz.
->
-> **İTÜ ile resmi bağlantısı yoktur.** Yalnızca kendi hesabınla kullan.
+OBS responses can differ between accounts. When results are incomplete, the tools
+say so. Verify important academic decisions in the OBS interface itself.
 
-Dürüst olmak gerekirse OBS'nin bazı uç noktaları hesaba göre tutarsız davranabiliyor, bir hesapta not alanı boş dönerken başka bir hesapta doluyor gibi. Böyle durumları elimizden geldiğince yakalayıp yedek kaynağa düşüyoruz ve sonucu açıkça işaretliyoruz, ama tam garanti veremeyiz. Şüpheye düştüğünde her zaman OBS'nin kendi sayfasına bak.
+## What does PaperBridge add?
 
----
+<p align="center"><img src="docs/paperbridge-bridge.png" alt="A bridge made of paper" width="720"></p>
 
-## Nasıl çalışır
+PaperBridge adds tools for searching academic sources, resolving DOIs, reading
+full text you have permission to access, and viewing PDF pages as images. **It
+runs in the same process as ITU MCP, so it needs no second MCP connection and no
+LLM API key.**
+
+| Source | Support |
+| --- | --- |
+| Crossref | Search for article titles, authors, DOIs and bibliographic metadata |
+| Unpaywall | Open-access link discovery once you configure your own contact email |
+| IEEE Xplore | Experimental full-text retrieval through a configured browser, with your own institutional access and a permission record |
+| Springer Nature Link | Experimental article and book chapter retrieval under the same conditions |
+| Your own archive | Texts and PDF pages with a permission record, plus local search |
+
+Automatic full-text retrieval from Elsevier and Wiley is not implemented yet.
+Finding the metadata of an article does not mean reading the full article. For
+new sources that have an open-access link, use regular web access. PaperBridge
+does not start an institutional login or a new PDF download for such sources.
+
+PaperBridge ships with the package, and its research tools are available by
+default. The publisher browser and institutional login stay off until you
+configure them. Installation does not download a browser or grant permission for
+any document. Tool use and page attachments have been verified in ChatGPT. In
+Claude and other MCP clients, the core tools work over standard MCP, while page
+attachments and automatic continuation depend on client support. See
+[PaperBridge setup](docs/paperbridge.md) for details.
+
+## Quick start
+
+ITU MCP requires Python **3.11 or later**. Install this fork from source:
+
+```bash
+git clone https://github.com/tzi4/itu-mcp.git
+cd itu-mcp
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+itu-mcp --version
+itu-mcp --list-tools
+```
+
+On Windows, create the virtual environment with `py -3.12 -m venv .venv`, then run
+`.\.venv\Scripts\python.exe -m pip install .` and
+`.\.venv\Scripts\itu-mcp.exe --list-tools`.
+
+In your MCP client, give the full path to the `itu-mcp` executable inside this
+virtual environment. For tools that need credentials, set `NINOVA_USERNAME` and
+`NINOVA_PASSWORD` in your own private client or service settings. Public tools do
+not need a university password.
+
+**The `itu-mcp` package on PyPI and the older upstream packages are not
+distributions of this fork.** Install the current fork from this repository. The
+[installation guide](docs/installation.md) includes configuration examples for
+Claude Desktop, Cursor and Codex.
+
+## How it works
 
 ```mermaid
 graph LR
-    istemci["Claude, Cursor, Codex"] -->|"MCP"| sunucu["İTÜ MCP"]
-    sunucu --> ninova["Ninova"]
-    sunucu --> obs["OBS"]
-    sunucu --> portal["Portal"]
-    sunucu --> kutuphane["Kütüphane"]
-    sunucu --> arsiv["Ders Arşivi"]
-    sunucu --> mail["İTÜ Mail"]
+    client["ChatGPT, Claude, Cursor, Codex"] -->|"MCP"| server["ITU MCP + PaperBridge"]
+    server --> itu["Ninova / OBS / Portal / campus / mail"]
+    server --> pb["PaperBridge"]
+    pb --> metadata["Crossref / Unpaywall"]
+    pb --> publishers["IEEE / Springer (configured access)"]
+    pb --> archive["Your permitted document archive"]
 ```
 
-Sunucu her servise ayrı bir istemci sınıfıyla konuşur, kendi oturumunu ve önbelleğini yönetir. Ninova ve OBS aynı İTÜ SSO girişini paylaşır, kütüphane hesabı bilgisi ise tamamen ayrıdır ve Ninova şifresiyle karışmaz. Kimlik gerektirmeyen araçlar (public ders programı, kampüs servisleri, arşiv) hiçbir zaman şifreni kullanmaz.
+Local clients connect to `itu-mcp` over stdio. Remote clients such as ChatGPT
+need `itu-mcp-remote`, your own HTTPS endpoint, authentication and a tool
+allowlist. The [advanced settings](docs/advanced.md) and the
+[security guide](docs/security.md) explain the setup.
 
-Ayrıntılı iç mimari ve istemci sınıfları için: [docs/advanced.md](docs/advanced.md).
+Each installation serves a single user. It does not separate different users or
+document archives that share the same server. This repository does not include
+credentials, private emails, PDFs, browser sessions or archive databases. Saving
+registration drafts is off by default, and submitting an assignment requires
+explicit confirmation. ITU MCP has no official affiliation with ITU.
 
----
-
-## Örnekler
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/yatuk/itu-mcp/main/docs/cli_demo.gif" alt="itu-mcp CLI demo" width="720" />
-  <br />
-  <em>CLI: <code>--version</code>, <code>--list-tools</code>, <code>--list-prompts</code> (gerçek çıktı)</em>
-</p>
-
-Claude Desktop üzerinden doğal dilde soru sorma örnekleri:
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/yatuk/itu-mcp/main/docs/bu_d%C3%B6nem_hangi_dersler.png" alt="Bu dönem hangi dersleri aldım" width="720" />
-  <br />
-  <em>OBS: dönem kayıtlı dersler ve program</em>
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/yatuk/itu-mcp/main/docs/son_duyurular.png" alt="Son duyurular ve mesajlar" width="720" />
-  <br />
-  <em>Ninova: son duyurular ve mesaj panosu özeti</em>
-</p>
-
----
-
-## Hızlı başlangıç
-
-### 1. Kurulum
+## Development
 
 ```bash
-pipx install itu-mcp
-# veya: pip install --user itu-mcp
-# kaynaktan:
-#   git clone https://github.com/yatuk/itu-mcp.git
-#   cd itu-mcp && pip install -e .
+python -m pip install -e .
+NINOVA_USERNAME=dummy NINOVA_PASSWORD=dummy python -m unittest discover -s tests -v
 ```
 
-### 2. Kimlik bilgileri
+Base new changes on the `main` branch of this fork and open pull requests against
+**tzi4/itu-mcp**. The tests use synthetic data, and live account and publisher
+tests run separately. See the [contributing guide](CONTRIBUTING.md).
 
-```bash
-cp .env.example .env
-# NINOVA_USERNAME=ad.soyad@itu.edu.tr
-# NINOVA_PASSWORD=********
-```
-
-Kullanıcı adı genelde **İTÜ e-posta** adresidir, yalnızca yerel kısım değil.
-
-### 3. Duman testi
-
-```bash
-itu-mcp --version
-itu-mcp --check-auth
-itu-mcp --list-tools
-itu-mcp --list-prompts
-```
-
-### 4. MCP istemcisini bağla
-
-**Claude Code**
-
-```bash
-claude mcp add itu itu-mcp \
-  -e NINOVA_USERNAME=ad.soyad@itu.edu.tr \
-  -e NINOVA_PASSWORD=sifren
-```
-
-**Codex CLI**
-
-```bash
-codex mcp add itu \
-  --env NINOVA_USERNAME=ad.soyad@itu.edu.tr \
-  --env NINOVA_PASSWORD=sifren \
-  -- itu-mcp
-```
-
-**Claude Desktop / Cursor:** [docs/installation.md](docs/installation.md) ve `examples/` klasörüne bak.
-
-> **Bu kadar.** İstemciyi yeniden başlat ve sor: *"Ninova'daki derslerimi listele"* veya *"OBS'te bu dönem kayıtlı derslerim?"*
-
----
-
-## Ne sorabilirsin?
-
-- *"Bu hafta hangi ödevlerimin teslimi var?"*
-- *"EEF 211E sınıf dosyalarındaki PDF'i oku."*
-- *"OBS'te 2025-2026 Bahar kayıtlı derslerim neler?"*
-- *"CEN 354E ara notlarım?"*
-- *"Danışmanım kim? Staj bilgilerimi göster."*
-- *"Show the status of my help ticket and the university's response."*
-- *"Transkript PDF indir."*
-- *"Son okunmamış mesajlarımı listele ve seçtiğim PDF ekini özetle."*
-- *"Gelecek dönem hangi dersleri almalıyım?"*<sup>✨</sup>
-- *"Vizeden 63 aldım, sınıf 30,35,40...90 arası dağılmış, hangi harf notunu alırım?"*<sup>✨</sup>
-- *"BLG bölümünde bu dönem hangi dersler açılmış, kontenjan durumu ne?"*<sup>✨</sup>
-- *"BLG 223E'yi almak için önce hangi dersleri almam lazım?"*<sup>✨</sup>
-- *"BBB binası neresi, bugün 10:00'da hangi derslikler boş görünüyor?"*<sup>✨</sup>
-- *"İTÜ mekik saatleri ve yüzme havuzu çalışma saatleri?"*<sup>✨</sup>
-- *"Kütüphanede Introduction to Algorithms var mı?"*<sup>✨</sup>
-
-<sup>✨</sup> <sub>Kimlik gerektirmez, `.env` olmadan da çalışır.</sub>
-
----
-
-## Araç haritası
-
-<table>
-  <tr>
-    <td align="center" width="20%"><strong>Ninova</strong><br/><sub>oturum gerekir</sub></td>
-    <td align="center" width="20%"><strong>OBS & Portal</strong><br/><sub>oturum gerekir</sub></td>
-    <td align="center" width="20%"><strong>Public İTÜ</strong><br/><sub>kimlik gerekmez ✨</sub></td>
-    <td align="center" width="20%"><strong>Planlama & Kütüphane</strong><br/><sub>karma</sub></td>
-    <td align="center" width="20%"><strong>Arşiv</strong><br/><sub>kimlik gerekmez ✨</sub></td>
-  </tr>
-  <tr>
-    <td>
-      <code>auth_status</code> · <code>list_courses</code><br/>
-      <code>get_course_*</code> · <code>sync_all_courses</code><br/>
-      <code>get_upcoming_deadlines</code><br/>
-      <code>read_resource_text</code> · <code>submit_assignment</code>
-    </td>
-    <td>
-      <code>obs_auth_status</code> · <code>obs_get_profile</code><br/>
-      <code>obs_list_registered_courses</code><br/>
-      <code>obs_get_registration_draft</code> · <code>obs_save_registration_draft</code><br/>
-      <code>obs_get_elective_group</code> · <code>obs_validate_registration_plan</code><br/>
-      <code>obs_get_course_grades</code> · <code>obs_get_attendance</code><br/>
-      <code>obs_get_advisor</code> · <code>obs_download_transcript</code><br/>
-      <code>get_cafeteria_menu</code> · <code>obs_get_notifications</code><br/>
-      <code>obs_get_help_tickets</code> · <code>get_help_ticket</code>
-    </td>
-    <td>
-      <code>get_public_course_schedule</code> · <code>get_public_exam_schedule</code><br/>
-      <code>obs_get_grade_distribution</code><br/>
-      <code>search_itu_directory</code> · <code>search_campus_locations</code><br/>
-      <code>get_shuttle_schedule</code> · <code>get_sports_facility_hours</code><br/>
-      <code>get_itu_announcements</code> · <code>get_academic_calendar</code>
-    </td>
-    <td>
-      <code>obs_calculate_gpa</code> · <code>calculate_target_gpa</code><br/>
-      <code>estimate_relative_grade</code> · <code>check_course_conflicts</code><br/>
-      <code>find_open_course_sections</code> · <code>find_empty_classrooms</code><br/>
-      <code>build_degree_plan</code> · <code>library_*</code>
-    </td>
-    <td>
-      <code>archive_who_taught</code> · <code>archive_course_history</code><br/>
-      <code>archive_fill_rate</code> · <code>archive_term_sections</code><br/>
-      <code>archive_search_courses</code> · <code>plan_remaining_courses</code>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="5" align="center"><strong>İTÜ Mail (salt okunur):</strong> <code>mail_status</code> · <code>mail_list_inbox</code> · <code>mail_get_message</code> · <code>mail_get_attachment</code></td>
-  </tr>
-</table>
-
-### Registration planning and grade history
-
-These four tools help you review your course choices before registration:
-
-| Tool | What it does |
-|---|---|
-| `obs_get_registration_draft()` | Reads your saved draft with CRNs, eligibility status, failure reasons and the draft timetable when available. |
-| `obs_get_elective_group(group_id)` | Shows courses that can fill an elective group, current sections, CRNs, meeting times and eligibility. |
-| `obs_validate_registration_plan(crns)` | Checks CRNs for timetable conflicts, prerequisites, elective requirements, graduation progress and their effect on later courses. |
-| `obs_get_grade_distribution(course_code, year, term_code)` | Shows previous terms' published letter-grade counts and percentages, including the exact course codes OBS reports together. |
-
-These tools leave your saved draft and course registrations unchanged. Missing evidence makes the plan result `incomplete`, even when no definite blocker is found. Later courses depend on completing prerequisites with the required grades. Grade distributions are public. `year` is the academic ending year (2026 = 2025–2026); year and term filters are optional. See [Registration planning](docs/registration-planning.md) and [Grade distributions](docs/grade-distribution.md) for examples and limits.
-
-Use `obs_save_registration_draft(crns, confirm=true)` to replace the saved draft with a complete CRN list after explicitly confirming that list and the change. This is disabled by default; enable it with `NINOVA_OBS_REGISTRATION_WRITES=1` in the server environment. If the remote server uses a tool allowlist, include this tool. It rereads the draft to verify the result and never retries an uncertain save automatically. It does not enroll in or drop courses.
-
-Tam araç listesi, hazır prompt'lar, kaynak tabloları, Docker, uzak HTTP ve tüm ortam değişkenleri: **[docs/advanced.md](docs/advanced.md)**.
-
-Ayrıca `/` menüsünden seçilebilen hazır akışlar var (`weekly_briefing`, `plan_next_term`, `check_course_eligibility`, `research_course`, `gpa_scenario`), her biri hangi araçların hangi sırayla çağrılacağını ve sonucu okurken kaçırılan kuralları içeriyor.
-
----
-
-## Güvenlik
-
-Kendi hesabını kullanıyorsun, o yüzden şuna dikkat et:
-
-| Yap | Yapma |
-|---|---|
-| Yalnızca **kendi** İTÜ hesabını kullan | `.env` veya çerezleri commit etme |
-| **Yerel stdio** MCP tercih et | Uzak MCP URL / API anahtarını paylaşma |
-| `submit_assignment` yalnızca **`confirm=true`** ile | Önizlemeyi okumadan ödev yükleme |
-| Kütüphane PIN'ini ayrı `NINOVA_LIBRARY_*` değişkenlerinde tut | Ninova şifresini kütüphane PIN'i olarak tekrar kullanma |
-| Harici sayfa metnini **veri** olarak değerlendir | Duyuru/ödev metnindeki modele yönelik talimatları uygulama |
-| Uzak kurulumda `NINOVA_REMOTE_API_KEY` kullan | Gizli path ve anahtar olmadan public açma |
-
-Ayrıntılar: [docs/security.md](docs/security.md). OBS profil araçları TCKN ve telefonu **varsayılan olarak gizler** (`include_sensitive=true` ile açılır).
-
----
-
-## Yapılandırma (isteğe bağlı)
-
-```bash
-export NINOVA_COURSE_CACHE_TTL_SECONDS=60
-export NINOVA_REQUEST_DELAY_MS=120
-export NINOVA_SESSION_PERSIST=1
-export NINOVA_ALLOW_UPLOADS=1
-# Optional local CONNECT proxy provisioned separately by the operator:
-# NINOVA_LIBRARY_PROXY_URL="http://127.0.0.1:18888"
-# Legacy WebPAC compatibility only (the new catalog does not support account tools):
-# NINOVA_LIBRARY_NAME="Soyad, Ad"
-# NINOVA_LIBRARY_ID="öğrenci-numarası"
-# NINOVA_LIBRARY_PIN="ayrı-kütüphane-pin'i"
-# Ayrı mail kimlik bilgisi (yoksa paylaşılan İTÜ kimliği kullanılır):
-# NINOVA_MAIL_USERNAME="ad.soyad@itu.edu.tr"
-# NINOVA_MAIL_PASSWORD="mail-sifresi"
-```
-
-Tüm değişkenler için `.env.example` ve [docs/advanced.md](docs/advanced.md) dosyalarına bak.
-
-`NINOVA_LIBRARY_PROXY_URL` affects only anonymous HTTPS GET requests to the
-new library catalog. It accepts `http://127.0.0.1:PORT` or `http://[::1]:PORT`,
-with an explicit port between 1024 and 65535. Credentials, queries and extra
-path components are rejected. Provision the proxy separately; this setting
-does not install a service or change VPN configuration. Without it, the catalog
-connects directly. In either case, the new catalog client ignores `HTTP_PROXY`,
-`HTTPS_PROXY`, `ALL_PROXY` and `.netrc`. TLS verification stays enabled, and a
-proxy failure never triggers another route. Legacy WebPAC account tools and
-other ITU/PaperBridge clients are unaffected. See [Library catalog](docs/library-catalog.md)
-for scope and validation.
-
----
-
-## Geliştirme
-
-```bash
-git clone https://github.com/yatuk/itu-mcp.git
-cd itu-mcp
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-source .venv/bin/activate
-pip install -e ".[playwright]"
-python -m unittest discover -s tests -v
-```
-
----
-
-## Bağlantılar
-
-| Kaynak | URL |
-|---|---|
-| **Kurulum** | [docs/installation.md](docs/installation.md) |
-| **Gelişmiş / araçlar** | [docs/advanced.md](docs/advanced.md) |
-| **Güvenlik** | [docs/security.md](docs/security.md) |
-| **Değişiklik günlüğü** | [CHANGELOG.md](CHANGELOG.md) |
-| **Sorunlar** | [github.com/yatuk/itu-mcp/issues](https://github.com/yatuk/itu-mcp/issues) |
-
----
-
-## Teşekkür
-
-Bu proje, [**Hikmet Gultekin**](https://github.com/hikmedit)'in yazdığı orijinal **[ninova-mcp](https://github.com/hikmedit/ninova-mcp)** üzerine kuruldu. İlk açık kaynak, kimlik bilgisiyle çalışan İTÜ Ninova MCP sunucusudur (LMS giriş, HTML ayrıştırma, izleme, `.mcpb` paketleme).
-
-İTÜ MCP bunun üzerine OBS öğrenci portalı API'lerini, PDF metin okumayı, güvenli ödev yüklemeyi, oturum kalıcılığını, uzak API anahtarını ve arşiv/prompt/resource desteğini ekliyor.
-
-Salt okunur İTÜ Mail araçlarını (`mail_status`, `mail_list_inbox`, `mail_get_message`, `mail_get_attachment`) [**tzi4**](https://github.com/tzi4) katkı olarak ekledi, teşekkürler.
-
----
-
-## Lisans
-
-[MIT](LICENSE). İstanbul Teknik Üniversitesi ile resmi bağlantısı yoktur.
-
-<br />
-
-<div align="center">
-  <sub><a href="https://github.com/yatuk">yatuk</a> tarafından · <a href="https://github.com/yatuk/itu-mcp">GitHub</a></sub>
-</div>
+Original ITU MCP by **yatuk** · Fork and PaperBridge by **tzi4** · [MIT](LICENSE)

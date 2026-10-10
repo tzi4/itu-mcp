@@ -224,6 +224,16 @@ class ObsClient:
         from .registration_write import save_registration_draft
         return save_registration_draft(self, crns)
 
+    def prepare_registration_write(self) -> dict[str, Any]:
+        """Prepare in-memory authentication before a separately gated submission."""
+        from .registration_write import prepare_registration_write
+        return prepare_registration_write(self)
+
+    def submit_registration_once(self, crns: list[str]) -> dict[str, Any]:
+        """Attempt add-only enrollment once; caller owns timing and reconciliation."""
+        from .registration_write import submit_registration_once
+        return submit_registration_once(self, crns)
+
     def validate_registration_crns(self, crns: list[str]) -> dict[str, Any]:
         """Run OBS's independent CRN check without saving or registering courses."""
         from .registration_draft import VALIDATION_PATH, normalize_crns, normalize_validation

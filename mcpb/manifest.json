@@ -1,17 +1,17 @@
 {
   "manifest_version": "0.3",
   "name": "itu-mcp",
-  "display_name": "ITU MCP",
-  "version": "0.2.0",
-  "description": "ITU Ninova + OBS for Claude: LMS courses/homework/grades and OBS registration/transcript/advisor/internships.",
+  "display_name": "ITU MCP + PaperBridge",
+  "version": "0.7.6.post1.dev18",
+  "description": "Ninova, OBS and institutional research in one self-hosted MCP server.",
   "long_description": "ITU MCP connects your ITU Ninova (LMS) and OBS (student portal) accounts using your own username and password. Credentials stay on your device and are only sent to ITU systems.",
   "author": {
-    "name": "yatuk",
-    "url": "https://github.com/yatuk"
+    "name": "tzi4",
+    "url": "https://github.com/tzi4"
   },
-  "homepage": "https://github.com/yatuk/itu-mcp",
-  "documentation": "https://github.com/yatuk/itu-mcp#readme",
-  "support": "https://github.com/yatuk/itu-mcp/issues",
+  "homepage": "https://github.com/tzi4/itu-mcp",
+  "documentation": "https://github.com/tzi4/itu-mcp#readme",
+  "support": "https://github.com/tzi4/itu-mcp/issues",
   "license": "MIT",
   "keywords": [
     "ninova",
@@ -51,7 +51,7 @@
     },
     {
       "name": "mail_status",
-      "description": "Check the verified-TLS, read-only İTÜ IMAP connection and return inbox counts."
+      "description": "Check the verified-TLS, read-only ITU IMAP connection and return inbox counts."
     },
     {
       "name": "mail_list_inbox",
@@ -169,14 +169,14 @@
   "user_config": {
     "ninova_username": {
       "type": "string",
-      "title": "İTÜ Kullanıcı Adı",
-      "description": "Ninova / İTÜ giriş kullanıcı adın (örn. gultekinh22).",
+      "title": "ITU Username",
+      "description": "Your Ninova / ITU login username (for example, yourname@itu.edu.tr).",
       "required": true
     },
     "ninova_password": {
       "type": "string",
-      "title": "İTÜ Şifresi",
-      "description": "İTÜ şifren. Cihazının güvenli anahtarlığında saklanır ve yalnızca etkinleştirdiğin İTÜ hizmetlerine gönderilir.",
+      "title": "ITU Password",
+      "description": "Your ITU password. Stored in your device's secure keychain and sent only to ITU services you enable.",
       "sensitive": true,
       "required": true
     },

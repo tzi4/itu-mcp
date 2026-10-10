@@ -47,4 +47,4 @@ jobs:
         run: python -m pip_audit .
 
       - name: Scan Python source
-        run: python -m bandit -r src/ninova_mcp -q
+        run: python scripts/check_bandit_baseline.py

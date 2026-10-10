@@ -19,3 +19,7 @@ tmp_*.json
 *.zip
 *.mcpb
 .claude/worktrees/
+
+.paperbridge*/
+publisher-rights.json
+publisher-policy.json

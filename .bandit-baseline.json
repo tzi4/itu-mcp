@@ -1,0 +1,47 @@
+{
+  "reviewed_on": "2026-10-10",
+  "findings": [
+    {
+      "path": "src/ninova_mcp/remote_files.py",
+      "test_id": "B404",
+      "source_sha256": "cf20c6b2b99bfb5a1c12b6fba5b5271e71bccf6a9593359bb8ad31856a54c379",
+      "severity": "LOW",
+      "reason": "Bounded text worker: fixed Python module, validated extension and character count; input is bytes, shell is disabled."
+    },
+    {
+      "path": "src/ninova_mcp/remote_files.py",
+      "test_id": "B603",
+      "source_sha256": "cf20c6b2b99bfb5a1c12b6fba5b5271e71bccf6a9593359bb8ad31856a54c379",
+      "severity": "LOW",
+      "reason": "Bounded text worker: fixed Python module, validated extension and character count; input is bytes, shell is disabled."
+    },
+    {
+      "path": "src/paperbridge/cli.py",
+      "test_id": "B404",
+      "source_sha256": "4b59264005e5589263bbe6b29e91a5e985c4fa6e63d4b580c0a7c4c08bd66e2a",
+      "severity": "LOW",
+      "reason": "Explicit operator browser installation: fixed Python module and engine restricted to chromium/firefox; shell is disabled."
+    },
+    {
+      "path": "src/paperbridge/cli.py",
+      "test_id": "B603",
+      "source_sha256": "4b59264005e5589263bbe6b29e91a5e985c4fa6e63d4b580c0a7c4c08bd66e2a",
+      "severity": "LOW",
+      "reason": "Explicit operator browser installation: fixed Python module and engine restricted to chromium/firefox; shell is disabled."
+    },
+    {
+      "path": "src/paperbridge/rendering.py",
+      "test_id": "B404",
+      "source_sha256": "3951f9174fe4443479eb1511f98f3bca26476d92ad6c7c0094d959f6fc75632d",
+      "severity": "LOW",
+      "reason": "Isolated PDF renderer: fixed local worker path, validated page/edge integers, stripped environment and deadline; shell is disabled."
+    },
+    {
+      "path": "src/paperbridge/rendering.py",
+      "test_id": "B603",
+      "source_sha256": "3951f9174fe4443479eb1511f98f3bca26476d92ad6c7c0094d959f6fc75632d",
+      "severity": "LOW",
+      "reason": "Isolated PDF renderer: fixed local worker path, validated page/edge integers, stripped environment and deadline; shell is disabled."
+    }
+  ]
+}

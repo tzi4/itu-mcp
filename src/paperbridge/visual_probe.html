@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PaperBridge visual test</title>
+<style>
+  :root { color-scheme: light dark; font: 15px system-ui,sans-serif; }
+  body { margin: 0; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  p { line-height: 1.5; }
+  img { display: block; width: 100%; max-width: 640px; border-radius: 8px; }
+  img[hidden] { display: none; }
+  button { font: inherit; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+  button:disabled { cursor: default; opacity: .6; }
+</style>
+<h1>PaperBridge visual test</h1>
+<p>This is an original test image. No paper or university account is used.</p>
+<img id="preview" alt="Synthetic visual test; its contents are intentionally not described in text." hidden>
+<p id="status" role="status" aria-live="polite">Waiting for the image and chat attachment support.</p>
+<button id="attach" disabled>Add image to chat</button>
+<script>
+(() => {
+  const preview = document.getElementById('preview');
+  const status = document.getElementById('status');
+  const button = document.getElementById('attach');
+  let picture = null, fileId = null, busy = false, complete = false;
+  function receive(meta) {
+    const item = meta?.['paperbridge/image'];
+    if (!item || item.mimeType !== 'image/png' || typeof item.data !== 'string' ||
+        item.data.length > 1000000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(item.data)) return;
+    if (picture && item.data !== picture.data) return; // One result per component instance.
+    picture = item;
+    preview.src = 'data:image/png;base64,' + picture.data;
+    preview.hidden = false;
+  }
+  function refresh() {
+    const api = window.openai;
+    const envelope = api?.toolResponseMetadata;
+    receive(envelope?.mcp_tool_result?._meta);
+    receive(envelope?.call_tool_result?._meta);
+    receive(envelope);
+    if (busy || complete) return;
+    const supported = typeof api?.uploadFile === 'function' && typeof api?.setWidgetState === 'function';
+    button.disabled = !picture || !supported;
+    status.textContent = !picture ? 'Waiting for the test image.' : supported
+      ? 'Add this image, then ask ChatGPT what it can see.'
+      : 'This chat does not expose the image attachment feature required by this test.';
+  }
+  // Accept tool result notifications only from the embedding host.
+  window.addEventListener('message', event => {
+    if (event.source !== window.parent || event.data?.method !== 'ui/notifications/tool-result') return;
+    receive(event.data.params?._meta);
+    refresh();
+  });
+  window.addEventListener('openai:set_globals', refresh);
+  button.addEventListener('click', async () => {
+    if (busy || complete || button.disabled) return;
+    busy = true;
+    button.disabled = true;
+    status.textContent = 'Adding the image to this chat…';
+    try {
+      if (!fileId) {
+        const binary = atob(picture.data);
+        const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+        const file = new File([bytes], 'paperbridge-visual-test.png', {type: 'image/png'});
+        const uploaded = await window.openai.uploadFile(file);
+        if (typeof uploaded?.fileId !== 'string' || !uploaded.fileId || uploaded.fileId.length > 300)
+          throw new Error('Missing file identifier');
+        fileId = uploaded.fileId;
+      }
+      window.openai.setWidgetState({
+        modelContent: {notice: 'A synthetic test image is attached. Report only what you can actually see.'},
+        privateContent: {}, imageIds: [fileId]
+      });
+      complete = true;
+      status.textContent = 'Image attached for the next message. Ask ChatGPT to describe it.';
+      button.textContent = 'Image added';
+    } catch (_) {
+      status.textContent = 'The image could not be attached. You can retry; visual access is not confirmed.';
+      button.disabled = false;
+    } finally { busy = false; }
+  });
+  refresh();
+})();
+</script>
+</html>

@@ -10,11 +10,12 @@ For basic install, see the [README](../README.md) and the [installation guide](i
 
 - Python 3.11+
 - `requests`, `beautifulsoup4`, `lxml`, `mcp`, `starlette`, `uvicorn`
-- Optional: `playwright` for a login fallback when Ninova's form flow changes
-  (`pipx install "itu-mcp[playwright]"` then `playwright install chromium`)
+- `playwright` is included for optional browser access. Install this fork from
+  source, then provision a browser separately with `python -m playwright install chromium`.
 
-The one-click `.mcpb` bundle ships its own Python runtime and all of these, so it
-needs nothing preinstalled.
+The bundle build workflow can package the Python runtime and dependencies.
+Use only bundles published by this fork when available; upstream bundles are
+a separate distribution. Publisher browser binaries require separate setup.
 
 ## Configuration
 
