@@ -49,9 +49,9 @@ dependencies = [
 playwright = ["playwright>=1.62,<2"]
 
 [project.urls]
-Homepage = "https://github.com/tzi4/itu-mcp"
-Repository = "https://github.com/tzi4/itu-mcp"
-Issues = "https://github.com/tzi4/itu-mcp/issues"
+Homepage = "https://github.com/tzi4/itu-mcp-paperbridge"
+Repository = "https://github.com/tzi4/itu-mcp-paperbridge"
+Issues = "https://github.com/tzi4/itu-mcp-paperbridge/issues"
 
 [project.scripts]
 itu-mcp = "ninova_mcp.server:main"

@@ -1,14 +1,14 @@
 # Install ITU MCP + PaperBridge
 
-Install **tzi4/itu-mcp** with Python 3.11 or newer. PaperBridge's Python package
+Install **tzi4/itu-mcp-paperbridge** with Python 3.11 or newer. PaperBridge's Python package
 and static viewer pages are included. No second repository or MCP connection
 is required.
 
 ## Linux and macOS
 
 ```bash
-git clone https://github.com/tzi4/itu-mcp.git
-cd itu-mcp
+git clone https://github.com/tzi4/itu-mcp-paperbridge.git
+cd itu-mcp-paperbridge
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install .
@@ -19,8 +19,8 @@ itu-mcp --list-tools
 ## Windows PowerShell
 
 ```powershell
-git clone https://github.com/tzi4/itu-mcp.git
-cd itu-mcp
+git clone https://github.com/tzi4/itu-mcp-paperbridge.git
+cd itu-mcp-paperbridge
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install .
 .\.venv\Scripts\itu-mcp.exe --version

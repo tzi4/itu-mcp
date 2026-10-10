@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/fork-banner.svg" alt="ITU MCP + PaperBridge by tzi4" width="100%"></p>
 
 <p align="center">
-  <a href="https://github.com/tzi4/itu-mcp/actions/workflows/tests.yml"><img src="https://github.com/tzi4/itu-mcp/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/tzi4/itu-mcp-paperbridge/actions/workflows/tests.yml"><img src="https://github.com/tzi4/itu-mcp-paperbridge/actions/workflows/tests.yml/badge.svg?branch=main" alt="Tests"></a>
   <img src="https://img.shields.io/badge/Python-3.11%2B-5b9aff" alt="Python 3.11+">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-5fe0c1" alt="MIT"></a>
 </p>
@@ -103,6 +103,23 @@ the important messages in my inbox together:
 > "You have two classes today. Here's today's lunch menu. An assignment is due
 > in two days. Six new emails arrived; two need your attention."
 
+Here is a real English briefing from my phone. It brings together priorities,
+mail attachment summaries, course updates and the campus menu. Tap any screenshot
+to read it at full size.
+
+<table>
+  <tr>
+    <td width="25%" align="center"><a href="docs/screenshots/morning-briefing-priorities.jpg"><img src="docs/screenshots/morning-briefing-priorities.jpg" alt="My ChatGPT morning briefing: priorities and deadlines" width="230"></a><br><sub>Priorities and deadlines</sub></td>
+    <td width="25%" align="center"><a href="docs/screenshots/morning-briefing-mail.jpg"><img src="docs/screenshots/morning-briefing-mail.jpg" alt="My ChatGPT morning briefing: mail and attachments" width="230"></a><br><sub>Mail and attachments</sub></td>
+    <td width="25%" align="center"><a href="docs/screenshots/morning-briefing-courses.jpg"><img src="docs/screenshots/morning-briefing-courses.jpg" alt="My ChatGPT morning briefing: ninova and obs" width="230"></a><br><sub>Ninova and OBS</sub></td>
+    <td width="25%" align="center"><a href="docs/screenshots/morning-briefing-today.jpg"><img src="docs/screenshots/morning-briefing-today.jpg" alt="My ChatGPT morning briefing: today on campus" width="230"></a><br><sub>Today on campus</sub></td>
+  </tr>
+</table>
+
+This example shows my configured setup on October 10, 2026. The briefing includes
+source limitations and incomplete checks; available tools and results depend on
+your own configuration and account.
+
 With the server running, I can also open my AI app on my phone and ask a question
 while my computer is off. I can check a deadline, read a course file, work through
 an assignment or ask PaperBridge about a paper wherever I have a connection.
@@ -131,8 +148,8 @@ university and research tools.
 ITU MCP requires Python **3.11 or later**. Install this fork from source:
 
 ```bash
-git clone https://github.com/tzi4/itu-mcp.git
-cd itu-mcp
+git clone https://github.com/tzi4/itu-mcp-paperbridge.git
+cd itu-mcp-paperbridge
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install .
@@ -180,7 +197,7 @@ explicit confirmation. ITU MCP has no official affiliation with ITU.
 ## Development
 
 If you use this project and something is missing, or you have an idea that would
-make it more useful, [open an issue](https://github.com/tzi4/itu-mcp/issues).
+make it more useful, [open an issue](https://github.com/tzi4/itu-mcp-paperbridge/issues).
 I'd love to hear how you're using it and what you'd like to add. Bug reports
 and feature requests are welcome, even if you don't plan to write code.
 
@@ -193,7 +210,7 @@ NINOVA_USERNAME=dummy NINOVA_PASSWORD=dummy python -m unittest discover -s tests
 ```
 
 Base new changes on the `main` branch of this fork and open pull requests against
-**tzi4/itu-mcp**. The tests use synthetic data, and live account and publisher
+**tzi4/itu-mcp-paperbridge**. The tests use synthetic data, and live account and publisher
 tests run separately. See the [contributing guide](CONTRIBUTING.md).
 
 Original ITU MCP by **yatuk** · Fork and PaperBridge by **tzi4** · [MIT](LICENSE)

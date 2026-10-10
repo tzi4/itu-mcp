@@ -1,6 +1,6 @@
 # Contributing
 
-I maintain this fork independently at **tzi4/itu-mcp**. Create topic branches
+I maintain this fork independently at **tzi4/itu-mcp-paperbridge**. Create topic branches
 from this repository's `main` and target pull requests here. Changes to the
 original project require a separate, explicit decision; no upstream PR is
 created automatically.
@@ -8,7 +8,7 @@ created automatically.
 ## Ideas, bugs and feature requests
 
 You don't need to submit code to contribute. If something doesn't work, or you
-have an idea for a new feature, [open an issue](https://github.com/tzi4/itu-mcp/issues).
+have an idea for a new feature, [open an issue](https://github.com/tzi4/itu-mcp-paperbridge/issues).
 I'd love to hear what you're trying to do and how I can make the project more
 useful for you.
 

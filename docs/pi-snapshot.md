@@ -19,7 +19,7 @@ own machine. Source identity does not mean the machines share settings or data.
 PaperBridge is bundled in the same distribution to keep installation independent
 of an unpublished `tzipi-paperbridge` PyPI package. Upstream PyPI/registry
 publication automation was removed from this fork. The original author and
-license remain credited; package and support links target tzi4/itu-mcp.
+license remain credited; package and support links target tzi4/itu-mcp-paperbridge.
 
 `scripts/display_launcher.py` preserves the Pi's optional private-display helper
 for operator-managed, headed Linux deployments. It requires Xvfb and xauth,
