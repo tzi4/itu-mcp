@@ -158,6 +158,7 @@ class HelpToolTests(unittest.TestCase):
         self.app._client = Mock()
         self.app._client.get_html.return_value = (detail_html(), SimpleNamespace(url=URL))
         self.rows = [{'URL': URL, 'Title': 'Example document request', 'TicketStateName': 'Yeni'}]
+        self.app._get_portal_json = Mock(return_value={'YardimInformationList': self.rows})
 
     def test_detail_reads_fixed_url_and_caches_without_mutation_or_download(self):
         result = self.app.get_help_ticket(ID)
@@ -172,6 +173,24 @@ class HelpToolTests(unittest.TestCase):
             with self.subTest(identifier=identifier), self.assertRaises(NinovaError):
                 self.app.get_help_ticket(identifier)
         self.app._client.get_html.assert_not_called()
+
+    def test_other_ticket_is_rejected_before_detail_fetch(self):
+        with self.assertRaisesRegex(NinovaError, 'own ticket list'):
+            self.app.get_help_ticket('9999999')
+        self.app._client.get_html.assert_not_called()
+
+    def test_cached_ticket_requires_current_ownership(self):
+        self.app.get_help_ticket(ID)
+        self.app._get_portal_json.return_value = {'YardimInformationList': [{'Id': '9999999'}]}
+        self.app._client.get_html.reset_mock()
+        with self.assertRaisesRegex(NinovaError, 'own ticket list'):
+            self.app.get_help_ticket(ID)
+        self.app._client.get_html.assert_not_called()
+
+    def test_fork_keeps_detail_default_and_original_author(self):
+        result = self.app.obs_get_help_tickets()
+        self.assertTrue(result['tickets'][0]['detail_available'])
+        self.assertEqual(self.app.get_help_ticket(ID)['ticket']['messages'][0]['author'], 'Example Student')
 
     def test_login_redirect_and_wrong_ticket_are_errors(self):
         self.app._client.get_html.return_value = (detail_html(), SimpleNamespace(url='https://girisv3.itu.edu.tr/Login.aspx'))

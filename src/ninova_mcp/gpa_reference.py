@@ -59,7 +59,13 @@ def official_term_reference(payload: dict[str, Any], term_code: str | None) -> d
         return {'status': 'ambiguous' if candidates else 'unavailable', 'gpa': None,
                 'credits': None, 'candidate_count': len(candidates),
                 'source': 'obs.itu.edu.tr/api/ogrenci/KayitDurumu'}
-    return {'status': 'reported', **candidates[0],
+    candidate = candidates[0]
+    if candidate['gpa'] == 0 and (candidate['credits'] is None or candidate['credits'] <= 0):
+        return {'status': 'unreported', **candidate, 'gpa': None,
+                'reported_term_gpa': 0.0,
+                'reason': 'zero_without_awarded_credit',
+                'source': 'obs.itu.edu.tr/api/ogrenci/KayitDurumu'}
+    return {'status': 'reported', **candidate,
             'source': 'obs.itu.edu.tr/api/ogrenci/KayitDurumu',
             'finality': 'not_reported_by_source'}
 

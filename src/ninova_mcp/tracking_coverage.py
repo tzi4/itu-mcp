@@ -11,7 +11,7 @@ import re
 from typing import Any
 from urllib.parse import parse_qsl, urljoin, urlparse
 
-from .parsing import _table_after_heading, make_soup, normalize_lookup_text
+from .parsing import _table_after_heading, make_soup, normalize_lookup_text, is_course_root
 
 
 def coverage(status: str, reason: str | None = None, **details: Any) -> dict[str, Any]:
@@ -82,7 +82,35 @@ def enrollment_coverage(html: str, page_url: str, expected_url: str, courses: li
     soup = make_soup(html)
     text = normalize_lookup_text(soup.get_text(" ", strip=True))
     if courses:
-        return coverage("unknown", "enrollment_container_not_verified")
+        parsed = {str(course.get("url") or "") for course in courses}
+        if len(parsed) != len(courses):
+            return coverage("partial", "duplicate_course_identities")
+        # Recognize the dashboard's list of course cards, and account for each
+        # card rather than treating any successfully parsed link as a full list.
+        inventories = []
+        for container in soup.find_all("ul"):
+            cards = container.find_all("li", recursive=False)
+            if not any(is_course_root(urljoin(page_url, str(a["href"])))
+                       for card in cards for a in card.find_all("a", href=True)):
+                continue
+            urls = []
+            for card in cards:
+                identities = {urljoin(page_url, str(a["href"])) for a in card.find_all("a", href=True)
+                              if is_course_root(urljoin(page_url, str(a["href"])))}
+                if len(identities) != 1:
+                    return coverage("partial", "unparsed_course_cards")
+                url = identities.pop()
+                if urlparse(url).netloc.lower() != urlparse(expected_url).netloc.lower():
+                    return coverage("partial", "unexpected_course_origin")
+                urls.append(url)
+            if len(set(urls)) != len(urls):
+                return coverage("partial", "duplicate_course_cards")
+            inventories.append(set(urls))
+        if not inventories:
+            return coverage("unknown", "enrollment_container_not_verified")
+        if len(inventories) != 1 or inventories[0] != parsed:
+            return coverage("partial", "course_inventory_mismatch")
+        return coverage("complete", "verified_course_cards")
     if _explicit_empty(text, "enrollment"):
         return coverage("complete", "explicit_empty_enrollment")
     return coverage("unknown", "course_list_not_recognized")

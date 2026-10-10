@@ -1,4 +1,4 @@
-"""Reject unreviewed Bandit findings without modifying the Pi source snapshot."""
+"""Reject unreviewed Bandit findings against the reviewed source baseline."""
 from pathlib import Path
 import hashlib
 import json

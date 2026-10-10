@@ -94,7 +94,7 @@ class EngineLifecycleTests(unittest.TestCase):
                 runner.close()
 
     def test_chromium_uses_full_executable_sandbox_and_stripped_environment(self):
-        for override in (None, '/operator/owned-browser/chrome'):
+        for override in (None, str(Path('/operator/owned-browser/chrome').absolute())):
             driver = self.driver()
             environment = {'NINOVA_PASSWORD': 'synthetic-password', 'NINOVA_USERNAME': 'synthetic-user',
                            'HTTP_PROXY': 'http://synthetic-user:synthetic-password@proxy.invalid',

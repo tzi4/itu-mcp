@@ -140,6 +140,7 @@ class RegistrationWriteTests(unittest.TestCase):
         self.assertNotIn("synthetic-private-message", json.dumps(result))
 
     def test_business_rejection_is_distinct_and_messages_are_not_echoed(self):
+        self.obs.get_registration_draft = Mock(side_effect=[draft(), draft()])
         reply = response({"statusCode": 1, "resultCode": "ERRMaxIstekTaslakOlustur", "resultMessage": "synthetic-private-message"})
         with patch.object(requests.Session, "request", return_value=reply) as request:
             result = save_registration_draft(self.obs, ["12345", "12346"])
@@ -175,7 +176,62 @@ class RegistrationWriteTests(unittest.TestCase):
         client = ObsClient(ninova_client=Mock())
         with patch("ninova_mcp.registration_write.save_registration_draft", return_value={"status": "saved"}) as write:
             self.assertEqual(client.save_registration_draft(["12345"]), {"status": "saved"})
-        write.assert_called_once_with(client, ["12345"])
+        write.assert_called_once_with(client, ["12345"], allow_replace=False)
+
+    def test_replacement_requires_explicit_permission_and_shows_exact_diff(self):
+        self.obs.get_registration_draft = Mock(return_value=draft(['12345', '12346']))
+        with patch.object(requests.Session, 'request') as request:
+            result = save_registration_draft(self.obs, ['12346', '12347'])
+        request.assert_not_called()
+        self.assertEqual(result['status'], 'needs_allow_replace')
+        self.assertEqual(result['previous_crns'], ['12345', '12346'])
+        self.assertEqual(result['removed_crns'], ['12345'])
+        self.assertEqual(result['added_crns'], ['12347'])
+
+    def test_same_draft_in_different_order_does_not_consume_write_quota(self):
+        self.obs.get_registration_draft = Mock(return_value=draft(['12345', '12346']))
+        with patch.object(requests.Session, 'request') as request:
+            result = save_registration_draft(self.obs, ['12346', '12345'])
+        request.assert_not_called()
+        self.assertEqual(result['status'], 'unchanged')
+        self.assertIsNone(result['submission'])
+        self.obs.get_registration_draft.assert_called_once()
+
+    def test_replacement_sends_exact_set_not_append_and_requires_zero_ack(self):
+        self.obs.get_registration_draft = Mock(side_effect=[draft(['12345', '12346']), draft(['12346', '12347'])])
+        with patch.object(requests.Session, 'request', return_value=response({'statusCode': 0})) as request:
+            result = save_registration_draft(self.obs, ['12346', '12347'], allow_replace=True)
+        self.assertEqual(request.call_args.kwargs['json'], {'ecrn': ['12346', '12347']})
+        request.assert_called_once()
+        self.assertEqual(result['status'], 'saved')
+        self.assertEqual(result['submission']['status_code'], 0)
+        self.assertTrue(result['readback']['matches_requested'])
+
+    def test_rejection_after_state_change_is_uncertain(self):
+        self.obs.get_registration_draft = Mock(side_effect=[draft(['12345']), draft(['12345', '12346'])])
+        with patch.object(requests.Session, 'request', return_value=response({'statusCode': 1})):
+            result = save_registration_draft(self.obs, ['12345', '12346'])
+        self.assertEqual(result['status'], 'uncertain')
+        self.assertIsNone(result['saved'])
+        self.assertEqual(result['reason'], 'draft_changed_despite_rejection')
+
+    def test_malformed_previous_inventory_requires_replace_opt_in(self):
+        for before in ({**draft(), 'courses': None}, {**draft(), 'courses': [{'crn': '12345'}]},
+                       {**draft(['12345']), 'draft_exists': None}, draft(['12345', '12345'])):
+            with self.subTest(before=before):
+                self.obs.get_registration_draft = Mock(return_value=before)
+                with patch.object(requests.Session, 'request') as request:
+                    result = save_registration_draft(self.obs, ['12345'])
+                request.assert_not_called()
+                self.assertEqual(result['reason'], 'existing_draft_unreadable')
+
+    def test_rejection_with_unavailable_readback_cannot_prove_no_change(self):
+        self.obs.get_registration_draft = Mock(side_effect=[draft(), ObsError('unavailable')])
+        with patch.object(requests.Session, 'request', return_value=response({'statusCode': 1})):
+            result = save_registration_draft(self.obs, ['12345'])
+        self.assertEqual(result['status'], 'uncertain')
+        self.assertIsNone(result['saved'])
+        self.assertEqual(result['reason'], 'draft_state_unverified_after_rejection')
 
 
 if __name__ == "__main__":

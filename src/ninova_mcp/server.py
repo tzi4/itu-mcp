@@ -1028,7 +1028,7 @@ class NinovaMcpApp:
         return self.obs.get_registration_draft()
 
     def obs_save_registration_draft(
-        self, crns: RegistrationDraftCrns, confirm: StrictBool,
+        self, crns: RegistrationDraftCrns, confirm: StrictBool, allow_replace: StrictBool = False,
     ) -> dict[str, Any]:
         """Replace a saved draft only with explicitly confirmed CRNs."""
         from .registration_draft import normalize_crns
@@ -1040,7 +1040,7 @@ class NinovaMcpApp:
         selected = normalize_crns(crns)
         # Draft reads are uncached. The client reconciles the attempted write
         # against a fresh readback; retain its saved/rejected/uncertain result.
-        return self.obs.save_registration_draft(selected)
+        return self.obs.save_registration_draft(selected, allow_replace=allow_replace is True)
 
     def obs_get_elective_group(self, group_id: int) -> dict[str, Any]:
         from .registration_tools import get_elective_group
@@ -1917,17 +1917,14 @@ class NinovaMcpApp:
         notifications = notifications[: max(1, min(limit, 100))]
         return {"count": len(notifications), "notifications": notifications, "source": "portal.itu.edu.tr/GetNotification", "untrusted_external_content": True}
 
-    def get_help_ticket(self, ticket_id: str) -> dict[str, Any]:
-        """Read a help ticket, its history and attachment links without mutations."""
-        from .help_tickets import help_url, parse_detail, ticket_id as valid_id, ticket_url
+    def _read_help_ticket(self, identifier: str) -> dict[str, Any]:
+        """Fetch and parse one ticket page. Callers decide ownership and redaction."""
+        from .help_tickets import help_url, parse_detail, ticket_url
 
-        identifier = valid_id(ticket_id)
-        if identifier is None:
-            raise NinovaError("Help ticket ID must contain only decimal digits (1–20 characters).")
         cache_key = f"help_ticket:{identifier}"
         cached = self._course_cache.get(cache_key)
         if cached is not None:
-            return {"ticket": cached, "untrusted_external_content": True}
+            return cached  # type: ignore[return-value]
         from requests import RequestException
 
         try:
@@ -1940,7 +1937,40 @@ class NinovaMcpApp:
         if ticket.get("id") != identifier:
             raise NinovaError(ticket.get("parse_warning") or "Help ticket was not found or is inaccessible.")
         self._course_cache.set(cache_key, ticket)
-        return {"ticket": ticket, "untrusted_external_content": True}
+        return ticket
+
+    def _help_ticket_rows(self) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        """The signed-in user's own ticket list, from the Portal widget."""
+        from .help_tickets import summary
+        from .parsing import extract_help_tickets
+
+        try:
+            data = self._get_portal_json("GetYardim")
+        except (NinovaError, ValueError):
+            data = {}
+        raw_items = data.get("YardimInformationList") or data.get("HelpInformationList") or []
+        tickets = [summary(item) for item in raw_items if isinstance(item, dict)]
+        if tickets:
+            return tickets, {"source": "portal.itu.edu.tr/GetYardim"}
+        html, url = self._get_portal_page()
+        payload = extract_help_tickets(html, url)
+        tickets = payload["tickets"]
+        payload["api_fallback"] = True
+        return tickets, payload
+
+    def get_help_ticket(self, ticket_id: str) -> dict[str, Any]:
+        """Read a ticket from the signed-in user's own Portal list."""
+        from .help_tickets import ticket_id as valid_id
+
+        identifier = valid_id(ticket_id)
+        if identifier is None:
+            raise NinovaError("Help ticket ID must contain only decimal digits (1–20 characters).")
+        # Check ownership before reading even a cached ticket. Authentication
+        # alone does not establish that a caller-supplied sequential ID is theirs.
+        own_ids = {str(item["id"]) for item in self._help_ticket_rows()[0] if item.get("id")}
+        if identifier not in own_ids:
+            raise NinovaError("Help ticket ID is not in your own ticket list. Call obs_get_help_tickets first.")
+        return {"ticket": self._read_help_ticket(identifier), "untrusted_external_content": True}
 
     def obs_get_help_tickets(
         self, query: str | None = None, limit: int = 20, include_details: bool = True,
@@ -1971,7 +2001,7 @@ class NinovaMcpApp:
         for item in selected:
             if include_details and item["id"]:
                 try:
-                    detail = self.get_help_ticket(item["id"])["ticket"]
+                    detail = self._read_help_ticket(item["id"])
                 except (NinovaError, ValueError):
                     item["detail_available"] = False
                     item["detail_warning"] = "Help ticket details were unavailable. Portal fields are retained."
@@ -4645,7 +4675,9 @@ TOOLS: list[dict[str, Any]] = [
         "title": "OBS Save Registration Draft",
         "description": (
             "Replace the saved OBS registration draft with exactly one to twelve supplied CRNs. "
-            "This changes the user's saved draft and can replace its existing contents. Requires "
+            "This changes the user's saved draft and can replace its existing contents. "
+            "Removing existing CRNs or replacing an unreadable draft also requires allow_replace=true "
+            "after reviewing previous_crns and removed_crns. Requires "
             "the user's explicit confirmation of the exact CRNs and replacement, confirm=true, "
             "and the operator's NINOVA_OBS_REGISTRATION_WRITES=1 opt-in. Does not register or "
             "drop courses. Reports saved, rejected or uncertain based on the submission and "
@@ -4661,6 +4693,10 @@ TOOLS: list[dict[str, Any]] = [
                 "confirm": {
                     "type": "boolean",
                     "description": "True only after the user explicitly confirms replacing the draft with these exact CRNs.",
+                },
+                "allow_replace": {
+                    "type": "boolean", "default": False,
+                    "description": "True only after reviewing the previous draft and accepting any removed CRNs.",
                 },
             },
             "required": ["crns", "confirm"],

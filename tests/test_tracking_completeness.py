@@ -285,6 +285,44 @@ class DashboardEnrollmentTests(unittest.TestCase):
         self.app._course_cache_ttl_seconds = 60
         self.app._client = Mock(base_url=BASE)
 
+    @staticmethod
+    def cards(numbers):
+        return '<ul>' + ''.join(f'<li><span>UCK {100+n}E</span><a href="/Sinif/1.{n}">CRN: {12000+n}</a></li>'
+                                for n in numbers) + '</ul>'
+
+    def test_recognized_nonempty_dashboard_supports_actual_sync_add_and_remove(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.app.tracking_state_path = Path(directory) / 'tracking.json'
+            self.app._collect_course_snapshot = lambda course, **kwargs: {**snapshot(), 'course': course}
+            for numbers, expected_events in (([1, 2], []), ([1, 2, 3], ['added']), ([2, 3], ['removed'])):
+                self.app._client.get_html.return_value = (self.cards(numbers), SimpleNamespace(url=BASE + '/Kampus1'))
+                result = self.app.sync_all_courses()
+                state = load_tracking_state(self.app.tracking_state_path)
+                self.assertEqual(state['enrollment_coverage']['status'], 'complete')
+                self.assertEqual([item['action'] for item in result['updates']], expected_events)
+            self.app._client.get_html.return_value = (
+                self.cards([2]).replace('</ul>', '<li>UCK 103E: unavailable card</li></ul>'),
+                SimpleNamespace(url=BASE + '/Kampus1'))
+            result = self.app.sync_all_courses()
+            self.assertEqual(result['updates'], [])
+            self.assertEqual(len(load_tracking_state(self.app.tracking_state_path)['courses']), 2)
+            self.assertEqual(self.app._course_cache.get('courses')[-1]['url'], BASE + '/Sinif/1.3')
+
+    def test_missing_cards_external_cards_pagination_and_login_cannot_be_complete(self):
+        good = self.cards([1])
+        for html in (good.replace('</ul>', '<li>Missing course link</li></ul>'),
+                     good.replace('/Sinif/1.1', 'https://evil.example/Sinif/1.1'),
+                     good + '<a href="?page=2">Next</a>', good + '<input type="password">',
+                     good + '<a href="/Sinif/1.2">Another course outside the inventory</a>'):
+            with self.subTest(html=html):
+                result = enrollment_coverage(html, BASE + '/Kampus1', BASE + '/Kampus1',
+                                             [{**COURSE, 'url': BASE + '/Sinif/1.1'}])
+                # Outside links must also be part of the parser's full inventory.
+                if '/Sinif/1.2' in html:
+                    result = enrollment_coverage(html, BASE + '/Kampus1', BASE + '/Kampus1',
+                        [{**COURSE, 'url': BASE + '/Sinif/1.1'}, {**COURSE, 'url': BASE + '/Sinif/1.2'}])
+                self.assertNotEqual(result['status'], 'complete')
+
     def test_compact_default_does_not_truncate_internal_enrollment(self):
         html = '<h1>Dersler</h1>' + "".join(f'<a href="/Sinif/1.{n}">UCK {100+n}E</a>' for n in range(25))
         self.app._client.get_html.return_value = (html, SimpleNamespace(url=BASE + "/Kampus1"))

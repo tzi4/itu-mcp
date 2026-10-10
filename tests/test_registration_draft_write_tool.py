@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import os
+import socket
 import tempfile
 import unittest
 from contextlib import ExitStack
@@ -20,10 +21,12 @@ class FakeObs:
     def __init__(self):
         self.writes = []
         self.reads = 0
+        self.replacements = []
         self.result = {"status": "saved", "saved": True, "readback_status": "matched"}
 
-    def save_registration_draft(self, crns):
+    def save_registration_draft(self, crns, *, allow_replace=False):
         self.writes.append(crns)
+        self.replacements.append(allow_replace)
         return copy.deepcopy(self.result)
 
     def get_registration_draft(self):
@@ -42,8 +45,16 @@ class DraftWriteToolTests(unittest.TestCase):
         stack.enter_context(patch("ninova_mcp.server.load_ninova_env"))
         # Detect accidental HTTP and lower-level connections, not merely a
         # missing mock. There are no local network dependencies in these tests.
-        for target in ("requests.sessions.Session.request", "socket.socket.connect", "socket.getaddrinfo"):
+        for target in ("requests.sessions.Session.request", "socket.getaddrinfo"):
             stack.enter_context(patch(target, side_effect=AssertionError("Network forbidden in draft wrapper test")))
+        real_connect = socket.socket.connect
+
+        def loopback_only(sock, address, *args, **kwargs):
+            if isinstance(address, tuple) and address and address[0] in ("127.0.0.1", "::1"):
+                return real_connect(sock, address, *args, **kwargs)
+            raise AssertionError("Network forbidden in draft wrapper test")
+
+        stack.enter_context(patch("socket.socket.connect", loopback_only))
         self.app = NinovaMcpApp()
         self.obs = FakeObs()
         self.app._obs = self.obs
@@ -109,7 +120,7 @@ class DraftWriteToolTests(unittest.TestCase):
         with patch.object(self.obs, "save_registration_draft", side_effect=ObsError("Save failed")) as save:
             with self.assertRaisesRegex(ObsError, "Save failed"):
                 self.app.obs_save_registration_draft(["10001"], True)
-            save.assert_called_once_with(["10001"])
+            save.assert_called_once_with(["10001"], allow_replace=False)
 
     def test_draft_read_remains_uncached_and_does_not_write(self):
         self.assertEqual(self.app.obs_get_registration_draft(), {"read_number": 1})
@@ -135,6 +146,8 @@ class DraftWriteToolTests(unittest.TestCase):
         self.assertFalse(tool.annotations.readOnlyHint)
         self.assertTrue(tool.annotations.destructiveHint)
         self.assertFalse(tool.annotations.idempotentHint)
+        self.assertEqual(schema['properties']['allow_replace']['type'], 'boolean')
+        self.assertFalse(schema['properties']['allow_replace']['default'])
         self.assertTrue(tool.annotations.openWorldHint)
         declared = next(item for item in TOOLS if item["name"] == tool.name)
         self.assertEqual(declared["inputSchema"]["required"], schema["required"])
@@ -170,6 +183,17 @@ class DraftWriteToolTests(unittest.TestCase):
         server = self.mcp()
         asyncio.run(server.call_tool("obs_save_registration_draft", {"crns": ["10002", "10001"], "confirm": True}))
         self.assertEqual(self.obs.writes, [["10002", "10001"]])
+
+    def test_sdk_replace_opt_in_is_strict_and_forwarded(self):
+        server = self.mcp()
+        for value in (1, 'true', None):
+            with self.subTest(allow_replace=value), self.assertRaises(ToolError):
+                asyncio.run(server.call_tool('obs_save_registration_draft',
+                    {'crns': ['10001'], 'confirm': True, 'allow_replace': value}))
+        self.assertEqual(self.obs.writes, [])
+        asyncio.run(server.call_tool('obs_save_registration_draft',
+            {'crns': ['10001'], 'confirm': True, 'allow_replace': True}))
+        self.assertEqual(self.obs.replacements, [True])
 
 
 if __name__ == "__main__":

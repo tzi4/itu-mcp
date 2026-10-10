@@ -32,7 +32,12 @@ def deny_network(*args, **kwargs):
     raise AssertionError("Offline protocol test attempted an HTTP request.")
 
 requests.sessions.Session.request = deny_network
-socket.socket.connect = deny_network
+_real_connect = socket.socket.connect
+def loopback_only(sock, address, *args, **kwargs):
+    if isinstance(address, tuple) and address and address[0] in ("127.0.0.1", "::1"):
+        return _real_connect(sock, address, *args, **kwargs)
+    return deny_network()
+socket.socket.connect = loopback_only
 socket.getaddrinfo = deny_network
 from ninova_mcp.obs_client import ObsPublicClient
 

@@ -118,6 +118,25 @@ class RegistrationDraftReadTests(unittest.TestCase):
         self.assertEqual(second["reasons"][0]["code"], "VAL08")
         self.assertIn("program", second["error_reason"])
 
+    def test_independent_checker_preserves_saved_contents_and_check_date(self) -> None:
+        wire = []
+        def backend(method, path, *, json_body=None, params=None):
+            wire.append((method, path))
+            if method == 'GET':
+                return deepcopy({DRAFT_PATH + 'KayitZamaniKontrolu': PERIOD,
+                    DRAFT_PATH + 'TaslakBilgisi/202710': DRAFT,
+                    DRAFT_PATH + 'TaslakTakvimi/202710': CALENDAR}[path])
+            self.assertEqual((method, path, json_body),
+                             ('POST', VALIDATION_PATH, {'ecrn': ['11739']}))
+            return validation_payload(validation_row())
+        with patch.object(self.client, '_api_request', side_effect=backend):
+            before = self.client.get_registration_draft()
+            self.client.validate_registration_crns(['11739'])
+            after = self.client.get_registration_draft()
+        self.assertEqual(before['courses'], after['courses'])
+        self.assertEqual(before['checked_at'], after['checked_at'])
+        self.assertEqual([entry for entry in wire if entry[0] == 'POST'], [('POST', VALIDATION_PATH)])
+
     def test_uses_draft_registration_period_instead_of_last_registered_term(self) -> None:
         with patch.object(self.client, "api_get", side_effect=[deepcopy(PERIOD), deepcopy(DRAFT), deepcopy(CALENDAR)]) as read:
             with patch.object(self.client, "resolve_semester", return_value={"donemKodu": "202620"}) as resolve:

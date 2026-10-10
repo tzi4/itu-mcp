@@ -104,6 +104,31 @@ class OfficialGpaTests(unittest.TestCase):
         self.assertEqual(official_term_reference(status(gpa=0), '202620')['gpa'], 0)
         self.assertEqual(official_term_reference(status(gpa='3,5'), '202620')['gpa'], 3.5)
 
+    def test_zero_without_awarded_credit_is_unreported_and_preserves_raw_value(self):
+        for credits in (0, None, 'invalid', -1):
+            with self.subTest(credits=credits):
+                ref = official_term_reference(status(gpa=0, credits=credits), '202620')
+                self.assertEqual(ref['status'], 'unreported')
+                self.assertIsNone(ref['gpa'])
+                self.assertEqual(ref['reported_term_gpa'], 0)
+                result = {'gpa': None}
+                attach_official_reference(result, ref, projection=False)
+                self.assertIsNone(result['preferred_term_gpa'])
+
+    def test_real_zero_from_graded_ff_course_is_kept_with_unreported_reference(self):
+        app = NinovaMcpApp.__new__(NinovaMcpApp)
+        app._obs = Mock()
+        app._obs.resolve_semester.return_value = {'akademikDonemId': 1, 'donemKodu': '202620'}
+        app._obs.list_registered_courses.return_value = {'kayitSinifResultList': [
+            {'bransKodu': 'AAA', 'dersKodu': '101', 'kredi': 3, 'harfNotu': 'FF'}]}
+        app._obs.get_registration_status.return_value = status(gpa=0, credits=0)
+        app._fetch_graduation_info = Mock(return_value={})
+        result = app.obs_calculate_gpa()
+        self.assertEqual(result['gpa'], 0)
+        self.assertEqual(result['preferred_term_gpa'], 0)
+        self.assertEqual(result['preferred_term_gpa_source'], 'calculated')
+        self.assertIsNone(result['official_term_gpa'])
+
     def test_incomplete_calculation_or_unused_projection_is_not_preferred(self):
         result = {'gpa': None, 'calculation_complete': False, 'known_courses_gpa': 4}
         attach_official_reference(result, official_term_reference({}, '202620'), projection=False)

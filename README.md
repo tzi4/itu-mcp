@@ -22,10 +22,8 @@ research workflows in one MCP server. I also aim to contribute suitable
 university-tool improvements back to the original project.
 
 In this fork, I've brought together OBS reliability fixes, registration planning,
-course schedule filters, help ticket details and PaperBridge. The application
-sources match the version I was running on my Raspberry Pi on
-October 10, 2026, and the [file manifest](docs/pi-source-20261010.json) lists
-every file. Each user runs it with their own account and storage.
+course schedule filters, help ticket details and PaperBridge. Each user runs it
+with their own account and storage.
 
 ## What is ITU MCP?
 
@@ -120,7 +118,7 @@ to read it at full size.
   </tr>
 </table>
 
-This example shows my configured setup on October 10, 2026. The briefing includes
+This example shows my configured setup. The briefing includes
 source limitations and incomplete checks; available tools and results depend on
 your own configuration and account.
 

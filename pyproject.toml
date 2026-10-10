@@ -38,6 +38,7 @@ dependencies = [
   "python-docx>=1.1.0",
   "requests>=2.32,<3",
   "starlette>=0.37.2",
+  "tzdata>=2024.1; sys_platform == 'win32'",
   "uvicorn>=0.30.0",
   "filelock>=3.16,<4",
   "pypdfium2>=5,<6",
