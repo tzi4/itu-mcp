@@ -1,9 +1,24 @@
 # Contributing
 
-This fork is maintained independently at **tzi4/itu-mcp**. Create topic branches
+I maintain this fork independently at **tzi4/itu-mcp**. Create topic branches
 from this repository's `main` and target pull requests here. Changes to the
 original project require a separate, explicit decision; no upstream PR is
 created automatically.
+
+## Ideas, bugs and feature requests
+
+You don't need to submit code to contribute. If something doesn't work, or you
+have an idea for a new feature, [open an issue](https://github.com/tzi4/itu-mcp/issues).
+I'd love to hear what you're trying to do and how I can make the project more
+useful for you.
+
+For feature requests, describe the workflow you want and what's missing today.
+For bugs, include the affected tool, what you expected, what happened, and your
+OS, Python version and AI client. Include only logs or examples you've removed
+private information from; never share credentials, cookies, private mail or
+student data. Please write issues and pull requests in English.
+
+## Pull requests
 
 Write new documentation, public names, diagrams, comments and explanatory
 text in English. Use **ITU MCP + PaperBridge** for the fork's public name.

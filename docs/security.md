@@ -52,10 +52,15 @@ This project logs in to İTÜ Ninova, OBS, Portal and optionally İTÜ Mail with
 ## Actions that change state
 
 - `submit_assignment` is a dry-run unless `confirm=true`; it can be disabled with
-  `NINOVA_ALLOW_UPLOADS=0` and is local-stdio only.
+  `NINOVA_ALLOW_UPLOADS=0`. Remote submissions require the explicit
+  `NINOVA_REMOTE_ENABLE_WRITES=1` opt-in, API-key authentication and a configured
+  managed file root. Only files deliberately staged in its `uploads` folder via
+  SSH/SFTP may be submitted. Preview with `confirm=false`, obtain approval of
+  that exact submission, then use `confirm=true`; replacement needs separate
+  approval. Files from `downloads` are rejected, including in a preview.
 - `library_renew_loan` and `library_reserve_item` are dry-run unless `confirm=true`.
   Both resolve opaque identifiers from the current account/catalog page before a
-  POST and are excluded from remote HTTP transport. These legacy operations are
+  POST. These legacy operations are
   unavailable on the current Sirsi platform and fail before any account request.
 - Course registration/CRN submission is intentionally not implemented.
 

@@ -81,6 +81,43 @@ record your actual document/provider permissions as described in
 dependencies through your normal administrator workflow. A headed server
 browser additionally needs a display.
 
+## Use the features I use on my Pi
+
+This repository contains the same ITU MCP and PaperBridge application sources
+I use on my Raspberry Pi. Each installation has its own accounts, settings,
+browser and document archive. A source install makes the tools available;
+configure the features you want to use:
+
+| Feature | Your setup |
+| --- | --- |
+| Ninova, OBS and Portal | Your own `NINOVA_USERNAME` and `NINOVA_PASSWORD` |
+| ITU Mail | Your own university mail access; optional separate mail credentials are described in [advanced configuration](advanced.md) |
+| IEEE / Springer full text | A provisioned browser, `PAPERBRIDGE_BROWSER_ENGINE=chromium`, your own institutional access and recorded processing permissions; see [PaperBridge setup](paperbridge.md) |
+| PDF page images | A client that can receive images; preview and automatic attachment support depend on the client |
+| Saved OBS registration drafts | Optional `NINOVA_OBS_REGISTRATION_WRITES=1`; each save still requires explicit confirmation |
+| Phone access while your computer is off | Your own running server, remote HTTP setup and a compatible AI client |
+| Morning briefings | Scheduling in your AI app or a separate automation setup |
+
+For remote mail, explicitly enable `NINOVA_REMOTE_ENABLE_MAIL=1`. Remote file
+tools and submissions are separate opt-ins: `NINOVA_REMOTE_ENABLE_FILES=1` and
+`NINOVA_REMOTE_ENABLE_WRITES=1`. These adapters require API-key authentication
+and an absolute `NINOVA_REMOTE_FILE_ROOT` pointing to your managed data directory.
+If you set `NINOVA_REMOTE_ALLOWED_TOOLS`, include the tools you want to expose.
+Uploads must also be allowed by `NINOVA_ALLOW_UPLOADS`.
+
+Remote assignment files must be deliberately placed in the managed `uploads`
+folder through SSH/SFTP. Review the exact file and submission preview, then
+confirm the upload; downloaded files are not automatically turned into
+submissions. See [remote configuration](advanced.md) and [security](security.md).
+
+For PaperBridge, check `papers_status` after configuring your client. It reports
+which providers are configured, without testing login or subscription access.
+My Pi uses Chromium for IEEE and Springer, a private display and a configured
+network route. You can use the documented headless default; if you choose headed
+mode, provide your own display. Use a network route that works for your access.
+Python, dependencies, browser versions and client behavior can differ between
+machines, so matching application sources does not guarantee identical results.
+
 ## Update
 
 ```bash

@@ -179,6 +179,14 @@ explicit confirmation. ITU MCP has no official affiliation with ITU.
 
 ## Development
 
+If you use this project and something is missing, or you have an idea that would
+make it more useful, [open an issue](https://github.com/tzi4/itu-mcp/issues).
+I'd love to hear how you're using it and what you'd like to add. Bug reports
+and feature requests are welcome, even if you don't plan to write code.
+
+If you'd like to build it yourself, check the
+[contributing guide](CONTRIBUTING.md) and open a pull request against this fork.
+
 ```bash
 python -m pip install -e .
 NINOVA_USERNAME=dummy NINOVA_PASSWORD=dummy python -m unittest discover -s tests -v
