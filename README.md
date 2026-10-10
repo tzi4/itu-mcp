@@ -12,15 +12,14 @@ ITU MCP + PaperBridge brings Istanbul Technical University (ITU) courses, campus
 services and academic research together in a single MCP connection. It runs on
 your own device or server.
 
-This repository is an **independently developed fork of
-[yatuk/itu-mcp](https://github.com/yatuk/itu-mcp), maintained by tzi4**. Thanks to
-[Hikmet Gultekin / yatuk](https://github.com/yatuk), the creator of ITU MCP. The
-fork keeps the existing Git history, the MIT license and the reference to the
-original project.
+I maintain this repository as an **independently developed fork of
+[yatuk/itu-mcp](https://github.com/yatuk/itu-mcp)**. Thanks to
+[Hikmet Gultekin / yatuk](https://github.com/yatuk), the creator of ITU MCP. I've
+kept the original Git history, MIT license and project attribution.
 
-The fork combines OBS reliability fixes, registration planning, course schedule
-filters, help ticket details and the PaperBridge integration. The application
-sources match the version that ran on the developer's Raspberry Pi on
+In this fork, I've brought together OBS reliability fixes, registration planning,
+course schedule filters, help ticket details and PaperBridge. The application
+sources match the version I was running on my Raspberry Pi on
 October 10, 2026, and the [file manifest](docs/pi-source-20261010.json) lists
 every file. Each user runs it with their own account and storage.
 
@@ -47,9 +46,17 @@ Claude, and Claude fetches the real data and answers.
 | "When is my final? Are there open seats?" | Public OBS final exam and course schedule tools |
 | "When is the next shuttle? When does the pool close?" | Campus service tools |
 | "Does the library have this book?" | Public catalog search and copy status |
-| "Show my latest unread email" | Read-only ITU Mail tools |
-| "Summarize this PDF" | Download and `read_resource_text` (PDF/DOCX) |
-| "Submit my assignment" | Optional upload, requires `confirm=true` |
+| "Read my latest emails, tell me which ones matter, and summarize their PDF or image attachments." | Read-only ITU Mail tools and PDF/JPEG/PNG attachment inspection |
+| "Scan Ninova for new assignments. Download any new files, start working through the questions, and send me a draft to review." | Assignment discovery and file download; your AI assistant prepares the draft |
+| "Use PaperBridge to read this IEEE or Springer paper through my university access and explain its equations and figures." | DOI lookup, configured institutional retrieval and PDF text/page tools |
+| "Download this assignment, prepare a solution, and upload the reviewed file to Ninova after I confirm." | Assignment files and submission tools; uploads must be enabled and require `confirm=true` |
+
+These are requests you can give your AI assistant. ITU MCP provides the university
+data and tools; your assistant connects the steps, drafts answers and explains
+what it finds. File creation and image understanding depend on your AI client.
+For submissions, review the final file and confirm the exact upload. Remote
+submissions also need the reviewed file staged in the server's managed upload
+folder.
 
 OBS responses can differ between accounts. When results are incomplete, the tools
 say so. Verify important academic decisions in the OBS interface itself.
@@ -58,8 +65,8 @@ say so. Verify important academic decisions in the OBS interface itself.
 
 <p align="center"><img src="docs/paperbridge-bridge.png" alt="A bridge made of paper" width="720"></p>
 
-PaperBridge adds tools for searching academic sources, resolving DOIs, reading
-full text you have permission to access, and viewing PDF pages as images. **It
+I've added PaperBridge for searching academic sources, resolving DOIs, reading
+full text I have permission to access, and viewing PDF pages as images. **It
 runs in the same process as ITU MCP, so it needs no second MCP connection and no
 LLM API key.**
 
@@ -83,6 +90,41 @@ any document. Tool use and page attachments have been verified in ChatGPT. In
 Claude and other MCP clients, the core tools work over standard MCP, while page
 attachments and automatic continuation depend on client support. See
 [PaperBridge setup](docs/paperbridge.md) for details.
+
+## Use cases
+
+### A morning briefing from my server
+
+I run ITU MCP + PaperBridge on my Raspberry Pi, connect it to ChatGPT, and use
+a scheduled task for a morning briefing. Instead of checking several sites, I
+get my classes for the day, the lunch menu, upcoming assignment deadlines and
+the important messages in my inbox together:
+
+> "You have two classes today. Here's today's lunch menu. An assignment is due
+> in two days. Six new emails arrived; two need your attention."
+
+With the server running, I can also open my AI app on my phone and ask a question
+while my computer is off. I can check a deadline, read a course file, work through
+an assignment or ask PaperBridge about a paper wherever I have a connection.
+When submission is configured and my reviewed file is ready in the upload folder,
+I can confirm its upload from the same conversation.
+
+For me, an always-on server is the most convenient setup: my phone is already
+with me, and I don't need to start my computer first. Scheduling comes from my
+AI app or a separate automation setup; ITU MCP supplies the data and tools.
+
+### The same tools while your computer is on
+
+You can also run the server on your own computer and connect a desktop AI client.
+While the computer and server are running, ask about your courses, read mail
+attachments, review assignments and explore papers in the same conversation.
+With remote HTTPS access configured, a compatible AI app on your phone can
+connect to that computer too.
+
+You still get the useful part: asking in plain language and letting your assistant
+bring the information together, instead of moving between five tabs. An always-on
+server adds availability while your computer is off; both setups use the same
+university and research tools.
 
 ## Quick start
 
