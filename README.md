@@ -25,6 +25,11 @@ In this fork, I've brought together OBS reliability fixes, registration planning
 course schedule filters, help ticket details and PaperBridge. Each user runs it
 with their own account and storage.
 
+Unlike the original project, this fork can also offer write actions to remote
+clients such as ChatGPT: assignment submission, library renewals/reservations and
+OBS registration drafts. They are off by default, and every action requires
+explicit confirmation.
+
 ## What is ITU MCP?
 
 Checking assignments on Ninova, grades on OBS and the dining menu on Portal means
