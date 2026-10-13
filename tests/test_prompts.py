@@ -96,8 +96,9 @@ class PromptRenderTests(unittest.TestCase):
         self.assertTrue(result.messages[0].content.text.strip())
 
     def test_unknown_prompt_raises(self) -> None:
-        with self.assertRaises(Exception):
-            asyncio.run(_server().get_prompt("no_such_prompt", {}))
+        server = _server()
+        with self.assertRaisesRegex(ValueError, r"^Unknown prompt: no_such_prompt$"):
+            asyncio.run(server.get_prompt("no_such_prompt", {}))
 
 
 class ResourceTests(unittest.TestCase):
@@ -148,8 +149,9 @@ class ResourceTests(unittest.TestCase):
             self.assertIn(value, data["descriptions"])
 
     def test_unknown_resource_raises(self) -> None:
-        with self.assertRaises(Exception):
-            list(asyncio.run(_server().read_resource("itu://reference/nope")))
+        server = _server()
+        with self.assertRaisesRegex(ValueError, r"^Unknown resource: itu://reference/nope$"):
+            list(asyncio.run(server.read_resource("itu://reference/nope")))
 
 
 if __name__ == "__main__":

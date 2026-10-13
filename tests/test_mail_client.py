@@ -269,10 +269,17 @@ class ItuMailClientTests(unittest.TestCase):
         self.assertEqual(fake.select_calls, [(b'"Custom/Outgoing"', True)])
 
     def test_conventional_fallback_including_localized_utf7(self) -> None:
-        for name in ("Sent", "sent-mail", "Sent Items", "Sent Messages", "INBOX.Sent", "Gönderilmiş Öğeler"):
+        self.assertEqual(mail_client._imap_utf7("Sent & Archives"), "Sent &- Archives")
+        self.assertEqual(mail_client._imap_utf7("Öğ"), "&ANYBHw-")
+        names = (
+            ("Sent", b"Sent"), ("sent-mail", b"sent-mail"),
+            ("Sent Items", b"Sent Items"), ("Sent Messages", b"Sent Messages"),
+            ("INBOX.Sent", b"INBOX.Sent"),
+            ("Gönderilmiş Öğeler", b"G&APY-nderilmi&AV8- &ANYBHw-eler"),
+        )
+        for name, wire in names:
             with self.subTest(name=name):
                 client, fake, _ = self.make_client()
-                wire = mail_client._imap_utf7(name).encode("ascii")
                 fake.list_rows = [b'() "/" "' + wire + b'"']
                 client.list_sent()
                 self.assertEqual(fake.select_calls, [(b'"' + wire + b'"', True)])
@@ -327,9 +334,30 @@ class ItuMailClientTests(unittest.TestCase):
 
     def test_sent_limits_are_bounded_and_empty_folder_is_valid(self) -> None:
         client, fake, _ = self.make_client()
-        result = client.list_sent(since_days=-1, limit=1000)
+        fake.sent_messages = {str(uid): _message_bytes(f"sent-{uid}") for uid in range(1, 121)}
+        original_uid = fake.uid
+
+        def large_mailbox(command, *args):
+            if command == "SEARCH":
+                fake.uid_calls.append((command, *args))
+                return "OK", [b" ".join(str(uid).encode() for uid in range(1, 121))]
+            return original_uid(command, *args)
+
+        with patch.object(fake, "uid", side_effect=large_mailbox):
+            result = client.list_sent(since_days=-1, limit=1000)
         self.assertEqual(result["since_days"], 0)
-        self.assertEqual(result["returned_count"], 2)
+        self.assertEqual(result["matched_count"], 120)
+        self.assertEqual(result["returned_count"], 50)
+        self.assertEqual(result["messages"][0]["uid"], "120")
+        self.assertEqual(result["messages"][-1]["uid"], "71")
+        self.assertEqual(len([call for call in fake.uid_calls if call[0] == "FETCH"]), 50)
+        with patch.object(fake, "uid", side_effect=large_mailbox), patch.object(mail_client, "datetime") as clock:
+            clock.now.return_value = datetime(2026, 10, 13, tzinfo=UTC)
+            bounded = client.list_sent(since_days=4000, limit=0)
+        self.assertEqual(bounded["since_days"], 3650)
+        self.assertEqual(bounded["returned_count"], 1)
+        self.assertEqual(bounded["messages"][0]["uid"], "120")
+        self.assertEqual(fake.uid_calls[-2], ("SEARCH", None, "ALL", "SINCE", "15-Oct-2016"))
         with patch.object(fake, "uid", return_value=("OK", [b""])):
             result = client.list_sent(since_days=0, limit=1)
         self.assertEqual(result["matched_count"], 0)
