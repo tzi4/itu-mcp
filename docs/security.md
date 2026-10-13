@@ -42,7 +42,7 @@ This project logs in to İTÜ Ninova, OBS, Portal and optionally İTÜ Mail with
   permits only its configured exact host and normal HTTPS port, with no URL credentials.
   It validates TLS and fails closed. A custom CA can be supplied with
   `NINOVA_LIBRARY_CA_BUNDLE`; there is no insecure `verify=false` switch.
-- `ItuMailClient` uses verified IMAPS, selects only `INBOX` in read-only mode, and
+- `ItuMailClient` uses verified IMAPS, selects `INBOX` or the existing sent folder in read-only mode, and
   fetches bodies and attachments with `BODY.PEEK` so unread state is preserved.
 - Public and library clients apply the same pre-request redirect validation, so an
   allowlisted page cannot bounce the client to localhost or an unrelated host.

@@ -49,6 +49,14 @@ class RemoteToolAllowlistTests(unittest.TestCase):
             os.environ["NINOVA_REMOTE_ENABLE_MAIL"] = "1"
             self.assertEqual(_selected_remote_tool_names(), ["auth_status", "mail_status"])
 
+    def test_sent_mail_requires_remote_opt_in(self) -> None:
+        with patch.dict(os.environ, {"NINOVA_REMOTE_ALLOWED_TOOLS": "mail_list_sent"}):
+            os.environ.pop("NINOVA_REMOTE_ENABLE_MAIL", None)
+            with self.assertRaises(RuntimeError):
+                _selected_remote_tool_names()
+            os.environ["NINOVA_REMOTE_ENABLE_MAIL"] = "1"
+            self.assertEqual(_selected_remote_tool_names(), ["mail_list_sent"])
+
     def test_registration_write_requires_exact_opt_in_even_in_explicit_allowlist(self) -> None:
         with patch.dict(os.environ, {"NINOVA_REMOTE_ALLOWED_TOOLS": "obs_save_registration_draft"}):
             for value in (None, "", "0", "true", "yes", "on", " 1 ", "01"):

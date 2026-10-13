@@ -28,6 +28,8 @@ NINOVA_PASSWORD=your_password
 # Optional; mail tools fall back to the shared credentials above.
 NINOVA_MAIL_USERNAME=your_email
 NINOVA_MAIL_PASSWORD=your_mail_password
+# Optional existing sent folder name if automatic discovery is ambiguous.
+# NINOVA_MAIL_SENT_MAILBOX=Sent Items
 ```
 
 The server reads them from the process environment. If a `.env` file exists in the
@@ -157,8 +159,9 @@ own routes such as `/Sinif/<id>.<id>/Notlar`, `/MesajPanosu`, `/Yoklama`, and
 - `auth_status` — check whether credentials exist and a fresh Ninova session can be created.
 - `mail_status` — verify the read-only IMAPS connection and return inbox counts.
 - `mail_list_inbox` — list bounded message headers and UIDs without changing unread state.
-- `mail_get_message` — read one bounded text body and attachment metadata with `BODY.PEEK`.
-- `mail_get_attachment` — inspect one size-limited PDF, JPEG, or PNG attachment in memory.
+- `mail_list_sent` — list saved sent-message headers and UIDs from the server's sent folder.
+- `mail_get_message` — read one bounded text body and attachment metadata with `BODY.PEEK`. Use `mailbox="SENT"` for a UID from `mail_list_sent`; the default is `INBOX`.
+- `mail_get_attachment` — inspect one size-limited PDF, JPEG, or PNG attachment in memory, using the same `mailbox` as the message read.
 - `refresh_session` — force a new login with the configured credentials.
 - `get_dashboard` — read `/Kampus1` and summarize sections, recent items, and courses.
 - `list_courses` — return the discovered courses from the dashboard (TTL-cached; `refresh` bypasses cache).
@@ -198,7 +201,13 @@ Many list/overview tools accept `compact=true` to shrink long fields (or set `NI
 
 ### Mail read-only scope
 
-Mail tools select only `INBOX` with `readonly=True` and fetch content with `BODY.PEEK`.
+Mail tools select `INBOX` or the existing sent folder with `readonly=True` and fetch
+content with `BODY.PEEK`. `mail_list_sent` discovers the server's sent folder using its
+IMAP role or a known folder name. If discovery is ambiguous, set
+`NINOVA_MAIL_SENT_MAILBOX` to the existing folder's display name. Message UIDs belong
+to their mailbox: pass `mailbox="SENT"` when reading a sent message or its attachment.
+Listings use descending UID order, which reflects the order messages were added to
+that folder. Only sent copies saved on the IMAP server are available.
 They cannot send, delete, move, flag, or mark messages as read. Attachment inspection accepts
 only bounded PDF, JPEG, and PNG data and never executes files. Remote HTTP keeps all mail tools
 disabled unless `NINOVA_REMOTE_ENABLE_MAIL=1`; `NINOVA_REMOTE_ALLOWED_TOOLS` can further narrow
