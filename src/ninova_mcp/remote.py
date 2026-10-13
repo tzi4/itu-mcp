@@ -34,6 +34,7 @@ from .server import (
     register_prompts,
     register_resources,
     register_tools,
+    server_instructions,
 )
 from .remote_files import (
     REMOTE_FILE_INSTRUCTIONS, REMOTE_FILE_TOOLS, REMOTE_WRITE_TOOLS, RemoteNinovaMcpApp,
@@ -132,7 +133,7 @@ def _build_fastmcp(app_logic: NinovaMcpApp, mount_path: str) -> FastMCP:
     port = int(os.getenv("PORT") or os.getenv("NINOVA_REMOTE_PORT") or "8000")
     mcp = FastMCP(
         SERVER_NAME,
-        instructions=SERVER_INSTRUCTIONS + REMOTE_FILE_INSTRUCTIONS,
+        instructions=server_instructions(SERVER_INSTRUCTIONS + REMOTE_FILE_INSTRUCTIONS),
         host=host,
         port=port,
         json_response=True,

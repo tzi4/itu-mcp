@@ -1,0 +1,113 @@
+{
+  "description": "Read-only ITU student questions used to compare tool profiles. 'expected' lists operations that each count as a correct route; any one of them is enough.",
+  "questions": [
+    {
+      "id": "deadlines_week",
+      "lang": "tr",
+      "prompt": "Bu hafta teslim etmem gereken ödevler neler?",
+      "expected": ["get_upcoming_deadlines", "get_dashboard_assignments", "get_dashboard", "get_course_assignments"]
+    },
+    {
+      "id": "latest_announcement",
+      "lang": "tr",
+      "prompt": "Ninova'daki derslerime en son hangi duyuru gelmiş?",
+      "expected": ["get_dashboard_announcements", "get_course_announcements", "get_dashboard", "get_updates"]
+    },
+    {
+      "id": "ninova_lms_grades",
+      "lang": "tr",
+      "prompt": "Ninova'da hocaların girdiği notlarımı göster.",
+      "expected": ["get_course_grades"]
+    },
+    {
+      "id": "obs_official_grades",
+      "lang": "tr",
+      "prompt": "OBS'te bu dönemki derslerimin harf notları açıklandı mı?",
+      "expected": ["obs_get_course_grades"]
+    },
+    {
+      "id": "schedule_room",
+      "lang": "tr",
+      "prompt": "Yarın derslerim saat kaçta ve hangi sınıfta?",
+      "expected": ["obs_get_schedule"]
+    },
+    {
+      "id": "attendance_risk",
+      "lang": "tr",
+      "prompt": "Devamsızlık durumum nasıl, devamsızlık sınırına yaklaştığım ders var mı?",
+      "expected": ["obs_get_attendance", "get_course_attendance"]
+    },
+    {
+      "id": "graduation_remaining",
+      "lang": "tr",
+      "prompt": "Mezun olmak için kaç dersim kaldı?",
+      "expected": ["obs_get_graduation_remaining"]
+    },
+    {
+      "id": "cafeteria",
+      "lang": "tr",
+      "prompt": "Bugün yemekhanede ne var?",
+      "expected": ["get_cafeteria_menu"]
+    },
+    {
+      "id": "empty_classrooms",
+      "lang": "tr",
+      "prompt": "Şu an Ayazağa'da boş derslik var mı?",
+      "expected": ["find_empty_classrooms"]
+    },
+    {
+      "id": "gpa_target",
+      "lang": "tr",
+      "prompt": "Genel not ortalamam kaç? 3.00'a çıkarmak için önümüzdeki dönem ortalama kaç almam gerekir?",
+      "expected": ["calculate_target_gpa", "obs_calculate_gpa"]
+    },
+    {
+      "id": "library_book",
+      "lang": "tr",
+      "prompt": "Kütüphanede 'Introduction to Algorithms' kitabı var mı, şu an ödünç alınabilir mi?",
+      "expected": ["library_search", "library_check_availability"]
+    },
+    {
+      "id": "academic_calendar",
+      "lang": "tr",
+      "prompt": "Akademik takvime göre bu dönemin final sınavları ne zaman başlıyor?",
+      "expected": ["get_academic_calendar"]
+    },
+    {
+      "id": "advisor",
+      "lang": "tr",
+      "prompt": "Danışmanım kim, iletişim bilgisi ne?",
+      "expected": ["obs_get_advisor"]
+    },
+    {
+      "id": "course_sections_public",
+      "lang": "tr",
+      "prompt": "MAT 281E dersinin bu dönem açılan şubeleri hangi gün ve saatlerde?",
+      "expected": ["get_public_course_schedule", "obs_search_courses", "find_open_course_sections"]
+    },
+    {
+      "id": "exam_calendar_en",
+      "lang": "en",
+      "prompt": "When are my upcoming exams?",
+      "expected": ["get_personal_exam_calendar", "get_public_exam_schedule"]
+    },
+    {
+      "id": "campus_card",
+      "lang": "tr",
+      "prompt": "Kampüs kartımda ne kadar bakiye var?",
+      "expected": ["obs_get_campus_card"]
+    },
+    {
+      "id": "who_taught",
+      "lang": "tr",
+      "prompt": "BLG 336E dersini geçmiş dönemlerde hangi hocalar verdi?",
+      "expected": ["archive_who_taught", "archive_course_history"]
+    },
+    {
+      "id": "papers_search",
+      "lang": "en",
+      "prompt": "Find recent papers on graph neural networks for traffic forecasting.",
+      "expected": ["papers_search", "search"]
+    }
+  ]
+}
