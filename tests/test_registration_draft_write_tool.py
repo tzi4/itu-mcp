@@ -66,13 +66,10 @@ class DraftWriteToolTests(unittest.TestCase):
                     self.app.obs_save_registration_draft(["10001"], value)
         self.assertEqual(self.obs.writes, [])
 
-    def test_write_switch_is_default_off_and_checked_on_every_call(self):
-        for value in (None, "", "0", "false", "true", "yes", "on", " 1 "):
+    def test_write_switch_off_values_are_checked_on_every_call(self):
+        for value in ("0", "false", "no", "off", " OFF "):
             with self.subTest(value=value):
-                if value is None:
-                    os.environ.pop("NINOVA_OBS_REGISTRATION_WRITES", None)
-                else:
-                    os.environ["NINOVA_OBS_REGISTRATION_WRITES"] = value
+                os.environ["NINOVA_OBS_REGISTRATION_WRITES"] = value
                 with self.assertRaisesRegex(ObsError, "disabled"):
                     self.app.obs_save_registration_draft(["10001"], True)
         self.assertEqual(self.obs.writes, [])
@@ -91,7 +88,7 @@ class DraftWriteToolTests(unittest.TestCase):
 
     def test_disabled_call_does_not_construct_authenticated_client(self):
         self.app._obs = None
-        os.environ.pop("NINOVA_OBS_REGISTRATION_WRITES")
+        os.environ["NINOVA_OBS_REGISTRATION_WRITES"] = "0"
         with patch("ninova_mcp.server.ObsClient", side_effect=AssertionError("Client must not be created")):
             with self.assertRaisesRegex(ObsError, "disabled"):
                 self.app.obs_save_registration_draft(["10001"], True)
@@ -174,7 +171,7 @@ class DraftWriteToolTests(unittest.TestCase):
     def test_sdk_dispatch_retains_guard_after_discovery(self):
         server = self.mcp()
         asyncio.run(server.list_tools())
-        os.environ.pop("NINOVA_OBS_REGISTRATION_WRITES")
+        os.environ["NINOVA_OBS_REGISTRATION_WRITES"] = "0"
         with self.assertRaisesRegex(ToolError, "disabled"):
             asyncio.run(server.call_tool("obs_save_registration_draft", {"crns": ["10001"], "confirm": True}))
         self.assertEqual(self.obs.writes, [])

@@ -13,7 +13,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 
-from .env import load_ninova_env
+from .env import env_choice, env_switch, load_ninova_env
 from .remote_security import (
     RemoteSecurityMiddleware,
     api_key_required,
@@ -53,18 +53,33 @@ def _split_csv_env(name: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def remote_file_capabilities() -> tuple[bool, bool]:
+    """Return whether remote file and write tools are enabled.
+
+    Both default to on when their prerequisites exist (API-key authentication
+    and a managed NINOVA_REMOTE_FILE_ROOT), and stay off otherwise so a basic
+    setup still starts. An explicit 0 turns them off; an explicit 1 without
+    the prerequisites fails at startup.
+    """
+    ready = bool(configured_api_key()) and bool((os.getenv("NINOVA_REMOTE_FILE_ROOT") or "").strip())
+    files = env_choice("NINOVA_REMOTE_ENABLE_FILES")
+    writes = env_choice("NINOVA_REMOTE_ENABLE_WRITES")
+    return (ready if files is None else files, ready if writes is None else writes)
+
+
 def _selected_remote_tool_names() -> list[str]:
-    """Apply opt-in sensitive-tool gates and an optional server allowlist."""
+    """Apply sensitive-tool switches and an optional server allowlist."""
     eligible = set(REMOTE_TOOL_NAMES)
-    if _env_flag("NINOVA_REMOTE_ENABLE_FILES"):
+    files_enabled, writes_enabled = remote_file_capabilities()
+    if files_enabled:
         eligible.update(REMOTE_FILE_TOOLS)
-    if _env_flag("NINOVA_REMOTE_ENABLE_WRITES"):
+    if writes_enabled:
         eligible.update(REMOTE_WRITE_TOOLS)
     available = [
         name
         for name in LOCAL_TOOL_NAMES
         if name in eligible and (
-            _env_flag("NINOVA_REMOTE_ENABLE_MAIL", default=False)
+            env_switch("NINOVA_REMOTE_ENABLE_MAIL")
             or name not in MAIL_TOOL_NAMES
         ) and (
             obs_registration_writes_enabled()
@@ -164,7 +179,7 @@ def build_app() -> Starlette:
             "NINOVA_REMOTE_REQUIRE_API_KEY=1 but NINOVA_REMOTE_API_KEY is not set."
         )
 
-    extended = _env_flag("NINOVA_REMOTE_ENABLE_FILES") or _env_flag("NINOVA_REMOTE_ENABLE_WRITES")
+    extended = any(remote_file_capabilities())
     if extended and not configured_api_key():
         raise RuntimeError("Remote file/write tools require API-key authentication.")
     app_logic = RemoteNinovaMcpApp() if extended else NinovaMcpApp()

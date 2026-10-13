@@ -9,6 +9,7 @@ import mimetypes
 import os
 import re
 import threading
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any, Callable
@@ -19,7 +20,7 @@ from pydantic import Field, StrictBool
 from .cache import TtlCache, parse_ttl_seconds
 from .client import NinovaAuthError, NinovaClient, NinovaError
 from .compact import maybe_compact
-from .env import load_ninova_env
+from .env import env_switch, load_ninova_env
 from .archive_client import ItuArchiveClient, ItuArchiveError
 from .community_data import CrossCheckDataClient, CrossCheckDataError
 from .graduation import summarize_graduation_plan
@@ -90,8 +91,8 @@ RegistrationDraftCrns = Annotated[
 
 
 def obs_registration_writes_enabled() -> bool:
-    """Account writes require the operator's explicit, exact opt-in."""
-    return os.getenv("NINOVA_OBS_REGISTRATION_WRITES") == "1"
+    """OBS draft saves are on unless the operator sets NINOVA_OBS_REGISTRATION_WRITES=0."""
+    return env_switch("NINOVA_OBS_REGISTRATION_WRITES")
 
 SERVER_INSTRUCTIONS = PAPER_INSTRUCTIONS + (
     "This connector reads the user's own İTÜ Ninova LMS and İTÜ OBS "
@@ -125,7 +126,7 @@ SERVER_INSTRUCTIONS = PAPER_INSTRUCTIONS + (
     "local file path — never upload without the user's explicit confirmation.\n\n"
     "obs_save_registration_draft replaces the saved OBS draft with the exact supplied "
     "CRNs. Use it only after the user explicitly confirms those CRNs and the replacement. "
-    "It requires confirm=true and the operator's NINOVA_OBS_REGISTRATION_WRITES=1 opt-in. "
+    "It requires confirm=true; the operator can disable it with NINOVA_OBS_REGISTRATION_WRITES=0. "
     "Saving a draft does not register or drop courses. Report the returned save and "
     "readback status; an uncertain result must not be reported as saved.\n\n"
     "İTÜ Mail tools are read-only. Use mail_list_inbox or mail_list_sent to discover UIDs, "
@@ -1050,7 +1051,7 @@ class NinovaMcpApp:
         if confirm is not True:
             raise ObsError("Saving the OBS draft requires explicit confirmation (confirm=true).")
         if not obs_registration_writes_enabled():
-            raise ObsError("OBS registration writes are disabled (NINOVA_OBS_REGISTRATION_WRITES=1 is required).")
+            raise ObsError("OBS registration writes are disabled by the operator (NINOVA_OBS_REGISTRATION_WRITES=0).")
         selected = normalize_crns(crns)
         # Draft reads are uncached. The client reconciles the attempted write
         # against a fresh readback; retain its saved/rejected/uncertain result.
@@ -4725,7 +4726,7 @@ TOOLS: list[dict[str, Any]] = [
             "Removing existing CRNs or replacing an unreadable draft also requires allow_replace=true "
             "after reviewing previous_crns and removed_crns. Requires "
             "the user's explicit confirmation of the exact CRNs and replacement, confirm=true, "
-            "and the operator's NINOVA_OBS_REGISTRATION_WRITES=1 opt-in. Does not register or "
+            "and must not be disabled by the operator (NINOVA_OBS_REGISTRATION_WRITES=0). Does not register or "
             "drop courses. Reports saved, rejected or uncertain based on the submission and "
             "fresh draft readback. An uncertain result is not proof that the draft was saved."
         ),
@@ -5790,6 +5791,35 @@ UNSTRUCTURED_TOOL_NAMES = {
 }
 
 
+CALL_LOG_ENV = "ITU_MCP_CALL_LOG"
+
+
+def record_tool_call(tool: str, started: float, result: Any, failed: bool,
+                     operation: str | None = None) -> None:
+    """Append one metadata line per tool call when ITU_MCP_CALL_LOG names a file.
+
+    Only the tool name, timing and result size are recorded, never arguments
+    or content. Logging problems never affect the tool call.
+    """
+    path = os.getenv(CALL_LOG_ENV)
+    if not path:
+        return
+    try:
+        entry: dict[str, Any] = {
+            "ts": datetime.now(UTC).isoformat(timespec="milliseconds"),
+            "tool": tool,
+            "ms": round((time.monotonic() - started) * 1000),
+            "result_chars": len(json.dumps(result, ensure_ascii=False, default=str)) if not failed else 0,
+            "error": failed,
+        }
+        if operation:
+            entry["operation"] = operation
+        with open(path, "a", encoding="utf-8") as stream:
+            stream.write(json.dumps(entry) + "\n")
+    except Exception:  # pragma: no cover - observability must never break a call
+        pass
+
+
 def server_instructions(base: str, profile: str | None = None) -> str:
     """Return the server instructions for the selected tool profile."""
     profile = profile or selected_profile()
@@ -5838,7 +5868,10 @@ def _register_router_tools(mcp: Any, router: ToolRouter) -> None:
         domain: Annotated[str, Field(description="Optional domain to list or narrow to.")] = "",
         limit: Annotated[int, Field(ge=1, le=MAX_FIND_LIMIT)] = DEFAULT_FIND_LIMIT,
     ) -> dict[str, Any]:
-        return router.find(query, domain, limit)
+        started = time.monotonic()
+        result = router.find(query, domain, limit)
+        record_tool_call(FIND_TOOL_NAME, started, result, False)
+        return result
 
     async def itu_call(
         operation: Annotated[str, Field(description="Exact operation name from itu_find_tool.")],
@@ -5847,7 +5880,14 @@ def _register_router_tools(mcp: Any, router: ToolRouter) -> None:
             Field(description="Arguments matching the operation's input_schema."),
         ] = None,
     ) -> Any:
-        return await router.call(operation, arguments)
+        started = time.monotonic()
+        try:
+            result = await router.call(operation, arguments)
+        except BaseException:
+            record_tool_call(CALL_TOOL_NAME, started, None, True, operation)
+            raise
+        record_tool_call(CALL_TOOL_NAME, started, result, False, operation)
+        return result
 
     read_only = ToolAnnotations(readOnlyHint=True, destructiveHint=False,
                                 idempotentHint=True, openWorldHint=True)
@@ -5871,7 +5911,13 @@ def _tool_registration(app: NinovaMcpApp, name: str,
 
     @functools.wraps(fn)
     def guarded_result(*args: Any, __fn: Callable[..., Any] = fn, **kwargs: Any) -> Any:
-        result = __fn(*args, **kwargs)
+        started = time.monotonic()
+        try:
+            result = __fn(*args, **kwargs)
+        except BaseException:
+            record_tool_call(name, started, None, True)
+            raise
+        record_tool_call(name, started, result, False)
         if isinstance(result, dict):
             result.setdefault("untrusted_external_content", True)
             result.setdefault(

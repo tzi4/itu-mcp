@@ -183,5 +183,24 @@ class CallTests(unittest.TestCase):
         self.assertIn("get_cafeteria_menu", result["suggestions"])
 
 
+class CallLogTests(unittest.TestCase):
+    def test_log_records_metadata_only(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "calls.jsonl")
+            with mock.patch.dict(os.environ, {"ITU_MCP_CALL_LOG": path}):
+                mcp = _build("router")
+                _call(mcp, FIND_TOOL_NAME, {"query": "hedef ortalama"})
+                _call(mcp, CALL_TOOL_NAME, {"operation": "calculate_target_gpa", "arguments": {
+                    "current_gpa": 2.5, "current_credits": 40, "target_gpa": 2.9, "future_credits": 20}})
+            with open(path, encoding="utf-8") as stream:
+                entries = [json.loads(line) for line in stream]
+        self.assertEqual([entry["tool"] for entry in entries],
+                         [FIND_TOOL_NAME, "calculate_target_gpa", CALL_TOOL_NAME])
+        self.assertEqual(entries[2]["operation"], "calculate_target_gpa")
+        for entry in entries:
+            self.assertEqual(set(entry) - {"operation"}, {"ts", "tool", "ms", "result_chars", "error"})
+
+
 if __name__ == "__main__":
     unittest.main()

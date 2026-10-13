@@ -3,6 +3,25 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+_OFF_VALUES = {"0", "false", "no", "off"}
+_ON_VALUES = {"1", "true", "yes", "on"}
+
+
+def env_switch(name: str, default: bool = True) -> bool:
+    """Read an on/off variable; unset or empty means ``default``."""
+    value = (os.getenv(name) or "").strip().lower()
+    if not value:
+        return default
+    return value not in _OFF_VALUES
+
+
+def env_choice(name: str) -> bool | None:
+    """Read an on/off variable, returning None when it is unset or empty."""
+    value = (os.getenv(name) or "").strip().lower()
+    if not value:
+        return None
+    return value in _ON_VALUES
+
 
 def _find_env_file(env_file: str | Path | None = None) -> Path | None:
     explicit = env_file or os.getenv("NINOVA_ENV_FILE")

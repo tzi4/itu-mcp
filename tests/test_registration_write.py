@@ -88,7 +88,8 @@ class RegistrationWriteTests(unittest.TestCase):
         for invalid in ([], ["12345", "12345"], [12345], ["12345"], ["12345/../"]):
             with self.subTest(invalid=invalid):
                 self.obs.get_registration_draft.reset_mock()
-                with patch.dict(os.environ, {}, clear=True), patch.object(requests.Session, "request") as request:
+                with patch.dict(os.environ, {"NINOVA_OBS_REGISTRATION_WRITES": "0"}, clear=True), \
+                        patch.object(requests.Session, "request") as request:
                     with self.assertRaises(ObsError):
                         save_registration_draft(self.obs, invalid)
                 self.obs.get_registration_draft.assert_not_called()

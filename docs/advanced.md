@@ -106,7 +106,7 @@ export NINOVA_REMOTE_API_KEY="$(openssl rand -hex 32)"   # recommended
 export NINOVA_REMOTE_REQUIRE_API_KEY="1"                 # refuse start without key
 export NINOVA_REMOTE_RATE_LIMIT="60"                     # max MCP requests / window
 export NINOVA_REMOTE_RATE_WINDOW_SECONDS="60"
-export NINOVA_REMOTE_ENABLE_MAIL="0"                   # explicit opt-in for mail tools
+export NINOVA_REMOTE_ENABLE_MAIL="1"                   # mail tools; on by default, 0 turns them off
 export NINOVA_REMOTE_ALLOWED_TOOLS=""                  # optional comma-separated allowlist
 export NINOVA_REMOTE_TRUST_PROXY_HEADERS="1"             # only if genuinely behind a proxy
 export NINOVA_PUBLIC_BASE_URL="https://itu-mcp.example.com"
@@ -146,6 +146,26 @@ docker run --rm -p 8000:8000 \
   -e NINOVA_ALLOWED_HOSTS="your-public-domain.example.com" \
   itu-mcp
 ```
+
+## Tool profiles
+
+Every operation is published as its own MCP tool by default
+(`ITU_MCP_TOOL_PROFILE=full`). That sends more than 100 tool schemas to the model at
+the start of each conversation. With `ITU_MCP_TOOL_PROFILE=router`, read-only
+operations are reached through two tools instead:
+
+- `itu_find_tool` lists a domain (`ninova`, `obs`, `registration`, `portal`,
+  `planning`, `public`, `campus`, `library`, `archive`, `papers`, ...) or ranks
+  operations for a Turkish or English query, returning the input schema of each match.
+- `itu_call` runs a read-only operation with arguments validated against that schema.
+
+Write actions, tools that store files on the server, mail tools, page-view tools and a
+few frequent entry points (`get_dashboard`, `list_courses`, `get_course_overview`,
+`obs_get_schedule`) remain separate tools, so clients still show and confirm them
+individually. Ranking is deterministic and needs no API key or model.
+
+Set `ITU_MCP_CALL_LOG=/path/calls.jsonl` to record one line per tool call with the tool
+name, duration and result size only, for example to compare the profiles.
 
 ## Request model
 
@@ -209,9 +229,9 @@ to their mailbox: pass `mailbox="SENT"` when reading a sent message or its attac
 Listings use descending UID order, which reflects the order messages were added to
 that folder. Only sent copies saved on the IMAP server are available.
 They cannot send, delete, move, flag, or mark messages as read. Attachment inspection accepts
-only bounded PDF, JPEG, and PNG data and never executes files. Remote HTTP keeps all mail tools
-disabled unless `NINOVA_REMOTE_ENABLE_MAIL=1`; `NINOVA_REMOTE_ALLOWED_TOOLS` can further narrow
-the published tool set.
+only bounded PDF, JPEG, and PNG data and never executes files. Remote HTTP publishes the mail tools
+by default; `NINOVA_REMOTE_ENABLE_MAIL=0` turns them off and `NINOVA_REMOTE_ALLOWED_TOOLS` can
+further narrow the published tool set.
 
 ## Notes
 

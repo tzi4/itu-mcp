@@ -12,6 +12,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from .client import DEFAULT_HEADERS, NinovaError
+from .env import env_switch
 from .obs_client import ObsError
 from .registration_draft import DRAFT_PATH, normalize_crns
 
@@ -28,7 +29,7 @@ def _result_code(value: Any) -> str | None:
 
 def prepare_registration_write(obs: Any) -> dict[str, Any]:
     """Read authentication now; final submission must not refresh it at wire time."""
-    if os.getenv("NINOVA_OBS_REGISTRATION_WRITES") != "1":
+    if not env_switch("NINOVA_OBS_REGISTRATION_WRITES"):
         raise ObsError("OBS registration writes are disabled by the operator.")
     if obs.base_url != "https://obs.itu.edu.tr":
         raise ObsError("The OBS write destination is not explicitly allowed.")
@@ -165,7 +166,7 @@ def _draft_crns(draft: Any) -> list[str] | None:
 def save_registration_draft(obs: Any, crns: list[str], *, allow_replace: bool = False) -> dict[str, Any]:
     """Save exactly the requested CRNs, preserving warnings and existing enrollments."""
     selected = normalize_crns(crns)
-    if os.getenv("NINOVA_OBS_REGISTRATION_WRITES") != "1":
+    if not env_switch("NINOVA_OBS_REGISTRATION_WRITES"):
         raise ObsError("OBS registration writes are disabled by the operator.")
     before = obs.get_registration_draft()
     term = before.get("term_code") if isinstance(before, dict) else None
@@ -226,7 +227,7 @@ def save_registration_draft(obs: Any, crns: list[str], *, allow_replace: bool = 
 def submit_registration_once(obs: Any, crns: list[str]) -> dict[str, Any]:
     """One add-only POST using already prepared auth; no timing or readback I/O."""
     selected = normalize_crns(crns)
-    if os.getenv("NINOVA_OBS_REGISTRATION_WRITES") != "1":
+    if not env_switch("NINOVA_OBS_REGISTRATION_WRITES"):
         raise ObsError("OBS registration writes are disabled by the operator.")
     submission = _post_once(obs, SUBMIT_REGISTRATION_PATH,
                             {"ECRN": selected, "SCRN": []}, prepared_only=True)

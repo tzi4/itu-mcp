@@ -66,6 +66,8 @@ async def exchange() -> dict:
             "NINOVA_SESSION_PERSIST": "0",
             "NINOVA_USERNAME": "",
             "NINOVA_PASSWORD": "",
+            # Exercise the operator switch-off path; drafts are on by default.
+            "NINOVA_OBS_REGISTRATION_WRITES": "0",
             "REGISTRATION_TEST_SECRET": "synthetic-private-environment-value",
             "REGISTRATION_GRADE_FIXTURE": OFFICIAL_HTML,
         })
@@ -148,7 +150,7 @@ class RegistrationProtocolTests(unittest.TestCase):
         self.assertEqual({option["type"] for option in distribution["properties"]["term_code"]["anyOf"]}, {"string", "null"})
         self.assertEqual(distribution["required"], ["course_code"])
 
-    def test_draft_write_is_disabled_by_default_over_real_stdio(self) -> None:
+    def test_draft_write_switch_off_over_real_stdio(self) -> None:
         metadata = self.result["tools"]["obs_save_registration_draft"]
         self.assertFalse(metadata["annotations"]["readOnlyHint"])
         self.assertTrue(metadata["annotations"]["destructiveHint"])

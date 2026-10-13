@@ -14,7 +14,7 @@ Feature switches retain their source-defined defaults on fresh installations.
 
 Draft saves expose `previous_crns`, `added_crns` and `removed_crns`. Removing
 courses or replacing an unreadable draft requires `allow_replace=true` as well
-as explicit confirmation and the operator's write opt-in. An unchanged draft
+as explicit confirmation, unless the operator turned writes off. An unchanged draft
 does not trigger a save POST. Rejection with changed or unavailable readback is
 uncertain. Saving a draft does not enroll or drop courses.
 

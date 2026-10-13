@@ -52,9 +52,9 @@ This project logs in to İTÜ Ninova, OBS, Portal and optionally İTÜ Mail with
 ## Actions that change state
 
 - `submit_assignment` is a dry-run unless `confirm=true`; it can be disabled with
-  `NINOVA_ALLOW_UPLOADS=0`. Remote submissions require the explicit
-  `NINOVA_REMOTE_ENABLE_WRITES=1` opt-in, API-key authentication and a configured
-  managed file root. Only files deliberately staged in its `uploads` folder via
+  `NINOVA_ALLOW_UPLOADS=0`. Remote submissions are on by default once
+  API-key authentication and a managed file root are configured, and
+  `NINOVA_REMOTE_ENABLE_WRITES=0` turns them off. Only files deliberately staged in its `uploads` folder via
   SSH/SFTP may be submitted. Preview with `confirm=false`, obtain approval of
   that exact submission, then use `confirm=true`; replacement needs separate
   approval. Files from `downloads` are rejected, including in a preview.
