@@ -138,6 +138,23 @@ class RankingTests(unittest.TestCase):
         self.assertIn("target_gpa", schema["properties"])
         self.assertNotIn("title", json.dumps(schema))
 
+    def test_only_leading_matches_carry_schemas(self) -> None:
+        found = _call(self.mcp, FIND_TOOL_NAME, {"query": "sınav takvimi", "limit": 5})
+        with_schema = ["input_schema" in match for match in found["matches"]]
+        self.assertEqual(with_schema, [True, True] + [False] * (len(with_schema) - 2))
+
+    def test_call_description_indexes_every_routed_operation(self) -> None:
+        tools = {tool.name: tool for tool in asyncio.run(self.mcp.list_tools())}
+        description = tools[CALL_TOOL_NAME].description
+        self.assertIn("calculate_target_gpa(current_gpa, current_credits, target_gpa, "
+                      "future_credits)", description)
+        self.assertIn("get_cafeteria_menu(date?, meal?, vegan?)", description)
+        routed = set(server.LOCAL_TOOL_NAMES) - set(tools)
+        for name in routed:
+            self.assertIn(f" {name}(", description.replace("\n", " "))
+        for name in ("submit_assignment(", "mail_list_inbox(", "get_dashboard("):
+            self.assertNotIn(name, description)
+
     def test_published_tools_point_to_themselves(self) -> None:
         found = _call(self.mcp, FIND_TOOL_NAME, {"query": "ödev teslim et yükle"})
         submit = next(m for m in found["matches"] if m["operation"] == "submit_assignment")

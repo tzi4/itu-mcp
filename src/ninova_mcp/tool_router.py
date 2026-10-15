@@ -9,7 +9,8 @@ private FastMCP ``ToolManager`` and are reached through two public tools:
   schemas it needs.
 - ``itu_call`` validates the arguments against the same schema and runs the
   operation through the same wrapper and validation as a directly published
-  tool.
+  tool. Its description carries a compact index of operation signatures, so a
+  clear request can skip the lookup.
 
 Ranking is deterministic BM25 over each operation's name, title, description
 and Turkish/English keywords, with Turkish characters folded to ASCII and
@@ -57,6 +58,8 @@ NEVER_ROUTED_TOOL_NAMES = frozenset({"search", "fetch"})
 
 DEFAULT_FIND_LIMIT = 5
 MAX_FIND_LIMIT = 10
+# Only the leading matches carry a full input schema; the rest are summaries.
+SCHEMA_MATCHES = 2
 AMBIGUITY_RATIO = 0.85
 
 _FOLD = str.maketrans({
@@ -148,7 +151,7 @@ def tokenize(text: str) -> list[str]:
     return tokens
 
 
-def _summary(description: str, limit: int = 220) -> str:
+def _summary(description: str, limit: int = 160) -> str:
     text = " ".join(description.split())
     end = text.find(". ")
     sentence = text if end < 0 else text[: end + 1]
@@ -240,17 +243,30 @@ class ToolRouter:
         meta = self.operations[name]
         entry: dict[str, Any] = {
             "operation": name,
-            "domain": TOOL_DOMAIN.get(name, ""),
             "summary": _summary(meta.get("description") or meta.get("title") or ""),
+            # A published tool is called by its own name, never through itu_call.
+            "call_with": CALL_TOOL_NAME if name in self.routed_names else name,
         }
-        if name in self.routed_names:
-            entry["call_with"] = CALL_TOOL_NAME
-        else:
-            entry["call_with"] = name
-            entry["note"] = "Published as its own tool: call it directly, not through itu_call."
         if with_schema:
             entry["input_schema"] = compact_schema(meta.get("input_schema") or {})
         return entry
+
+    def signature(self, name: str) -> str:
+        """``name(required, optional?)`` from the operation's input schema."""
+        schema = self.operations[name].get("input_schema") or {}
+        required = set(schema.get("required") or ())
+        params = (param if param in required else param + "?"
+                  for param in schema.get("properties") or {})
+        return f"{name}({', '.join(params)})"
+
+    def operation_index(self) -> str:
+        """One line per domain listing the routed operations' signatures."""
+        lines = []
+        for domain, (_, names) in DOMAINS.items():
+            signatures = [self.signature(name) for name in names if name in self.routed_names]
+            if signatures:
+                lines.append(f"{domain}: {', '.join(signatures)}")
+        return "\n".join(lines)
 
     def domains(self) -> list[dict[str, Any]]:
         available = set(self.operations)
@@ -281,11 +297,13 @@ class ToolRouter:
         top = ranked[:limit]
         result: dict[str, Any] = {
             "query": query,
-            "matches": [self._describe(name, with_schema=True) for name, _ in top],
+            "matches": [self._describe(name, with_schema=rank < SCHEMA_MATCHES)
+                        for rank, (name, _) in enumerate(top)],
         }
         if len(top) >= 2 and top[1][1] >= top[0][1] * AMBIGUITY_RATIO:
             result["ambiguous"] = True
-            result["hint"] = "Top matches score closely; compare their summaries before choosing."
+            result["hint"] = ("Top matches score closely; compare their summaries. Search an "
+                              "operation's exact name to get its input_schema.")
         if not top:
             result["domains"] = self.domains()
             result["hint"] = "No match. Rephrase in English or Turkish, or browse a domain."
@@ -329,28 +347,34 @@ class ToolRouter:
 
 
 FIND_TOOL_DESCRIPTION = (
-    "Find the ITU operation for a request and get its input schema. Use this for anything not "
-    "covered by a directly published tool: Ninova course content and grades, OBS records, "
-    "registration, GPA planning, public course catalog, campus, library, course archive and "
-    "research papers. Pass `query` with the user's intent (Turkish or English, e.g. "
-    "'OBS official letter grades' or 'yemekhane menüsü'); optionally `domain` to narrow it. "
-    "With only `domain`, lists that domain's operations. Then run the chosen operation with "
-    "itu_call using exactly its input_schema. Domains: "
-    + "; ".join(f"{name} ({description})" for name, (description, _) in DOMAINS.items())
+    "Find the ITU operation for a request and get its input schema. Use it when no published "
+    "tool fits and the itu_call operation index does not make the choice and arguments clear. "
+    "Pass `query` with the user's intent (Turkish or English, e.g. 'OBS official letter grades' "
+    "or 'yemekhane menüsü'); optionally `domain` to narrow it. With only `domain`, lists that "
+    "domain's operations. Then run the chosen operation with itu_call. Domains: "
+    + ", ".join(DOMAINS)
     + "."
 )
-CALL_TOOL_DESCRIPTION = (
-    "Run a read-only ITU operation found with itu_find_tool. `operation` is the exact name, "
-    "`arguments` an object matching its input_schema. Invalid arguments return the schema "
-    "instead of running. This tool never changes data: writes, mail and file operations are "
-    "separate tools."
-)
+
+
+def call_tool_description(router: ToolRouter) -> str:
+    """itu_call's description, ending with the routed operations' signatures."""
+    return (
+        "Run a read-only ITU operation. `operation` is the exact name, `arguments` an object "
+        "matching its input schema. When an operation below clearly fits, call it directly; "
+        "otherwise use itu_find_tool first. Invalid arguments return the full schema instead of "
+        "running. This tool never changes data: writes, mail and file operations are separate "
+        "tools. Operations by domain, `name(required, optional?)`:\n"
+        + router.operation_index()
+    )
+
 
 ROUTER_INSTRUCTIONS = (
-    "\n\nTool routing: most read-only ITU operations are reached through itu_find_tool and "
-    "itu_call rather than listed individually. Call a published tool directly when one fits "
-    "(for example get_dashboard, list_courses, get_course_overview, obs_get_schedule). "
-    "Otherwise call itu_find_tool with the user's intent, pick the best match from its "
-    "summaries, and run it with itu_call. Ninova grades are instructor-entered LMS grades; "
-    "OBS grades are official. Do not answer from memory when an operation can fetch the data."
+    "\n\nTool routing: most read-only ITU operations are reached through itu_call rather than "
+    "listed individually. Call a published tool directly when one fits (for example "
+    "get_dashboard, list_courses, get_course_overview, obs_get_schedule). Otherwise, if the "
+    "operation index in itu_call's description clearly fits, call itu_call directly; if not, "
+    "call itu_find_tool with the user's intent and pick from its summaries. Ninova grades are "
+    "instructor-entered LMS grades; OBS grades are official. Do not answer from memory when an "
+    "operation can fetch the data."
 )

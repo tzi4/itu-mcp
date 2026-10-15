@@ -74,9 +74,9 @@ from .tracking import (
 )
 from .tracking_coverage import coverage, enrollment_coverage, scope_coverage
 from .tool_router import (
-    CALL_TOOL_DESCRIPTION, CALL_TOOL_NAME, DEFAULT_FIND_LIMIT, FIND_TOOL_DESCRIPTION,
-    FIND_TOOL_NAME, FULL_PROFILE, MAX_FIND_LIMIT, ROUTER_INSTRUCTIONS, ROUTER_PROFILE,
-    ToolRouter, is_routable, selected_profile,
+    CALL_TOOL_NAME, DEFAULT_FIND_LIMIT, FIND_TOOL_DESCRIPTION, FIND_TOOL_NAME, FULL_PROFILE,
+    MAX_FIND_LIMIT, ROUTER_INSTRUCTIONS, ROUTER_PROFILE, ToolRouter, call_tool_description,
+    is_routable, selected_profile,
 )
 
 SERVER_NAME = "itu-mcp"
@@ -5897,7 +5897,7 @@ def _register_router_tools(mcp: Any, router: ToolRouter) -> None:
                                              destructiveHint=False, idempotentHint=True,
                                              openWorldHint=False))
     mcp.add_tool(itu_call, name=CALL_TOOL_NAME, title="Run ITU Operation",
-                 description=CALL_TOOL_DESCRIPTION, structured_output=False,
+                 description=call_tool_description(router), structured_output=False,
                  annotations=read_only)
 
 

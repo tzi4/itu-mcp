@@ -73,6 +73,10 @@ def _unquote(value: str) -> str:
     return value
 
 
+# Only this project's settings are read from a .env file.
+ENV_FILE_PREFIXES = ("NINOVA_", "ITU_MCP_")
+
+
 def load_ninova_env(
     env_file: str | Path | None = None,
     *,
@@ -90,7 +94,7 @@ def load_ninova_env(
         if parsed is None:
             continue
         key, value = parsed
-        if not key.startswith("NINOVA_"):
+        if not key.startswith(ENV_FILE_PREFIXES):
             continue
         if not override and key in os.environ:
             continue

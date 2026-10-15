@@ -23,6 +23,7 @@ class EnvLoadingTests(unittest.TestCase):
                 "NINOVA_STATE_DIR",
                 "NINOVA_ENV_FILE",
                 "UNRELATED_ENV",
+                "ITU_MCP_TOOL_PROFILE",
             )
         }
         for key in self.saved_env:
@@ -36,7 +37,7 @@ class EnvLoadingTests(unittest.TestCase):
             if value is not None:
                 os.environ[key] = value
 
-    def test_load_ninova_env_reads_only_ninova_keys(self) -> None:
+    def test_load_ninova_env_reads_only_project_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             env_path = temp_path / ".env"
@@ -45,6 +46,7 @@ class EnvLoadingTests(unittest.TestCase):
                     [
                         "NINOVA_USERNAME=file_user",
                         "NINOVA_PASSWORD='file pass'",
+                        "ITU_MCP_TOOL_PROFILE=router",
                         "UNRELATED_ENV=should_not_load",
                     ]
                 ),
@@ -56,6 +58,7 @@ class EnvLoadingTests(unittest.TestCase):
 
                 self.assertEqual(os.environ["NINOVA_USERNAME"], "file_user")
                 self.assertEqual(os.environ["NINOVA_PASSWORD"], "file pass")
+                self.assertEqual(os.environ["ITU_MCP_TOOL_PROFILE"], "router")
                 self.assertNotIn("UNRELATED_ENV", os.environ)
             finally:
                 # Windows cannot remove a temp dir while it is still cwd.

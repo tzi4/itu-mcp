@@ -113,6 +113,11 @@ if _LIB.is_dir() and str(_LIB) not in sys.path:
 # read-only extension directory.
 os.environ.setdefault("NINOVA_STATE_DIR", str(Path.home() / ".ninova_state"))
 
+# The "Compact tool list" checkbox selects the router tool profile. An explicit
+# ITU_MCP_TOOL_PROFILE still wins.
+if os.environ.get("ITU_MCP_COMPACT_TOOLS", "").strip().lower() == "true":
+    os.environ.setdefault("ITU_MCP_TOOL_PROFILE", "router")
+
 from ninova_mcp.server import main  # noqa: E402  (import after bootstrap)
 
 if __name__ == "__main__":

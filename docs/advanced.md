@@ -33,7 +33,7 @@ NINOVA_MAIL_PASSWORD=your_mail_password
 ```
 
 The server reads them from the process environment. If a `.env` file exists in the
-current working directory (or any parent), `NINOVA_*` variables are loaded from it
+current working directory (or any parent), `NINOVA_*` and `ITU_MCP_*` variables are loaded from it
 without overriding variables already set in the environment.
 
 ### Optional overrides
@@ -154,15 +154,26 @@ Every operation is published as its own MCP tool by default
 the start of each conversation. With `ITU_MCP_TOOL_PROFILE=router`, read-only
 operations are reached through two tools instead:
 
+- `itu_call` runs a read-only operation with arguments validated against its schema.
+  Its description lists every routed operation as `name(required, optional?)`, so a
+  clear request needs no lookup first.
 - `itu_find_tool` lists a domain (`ninova`, `obs`, `registration`, `portal`,
   `planning`, `public`, `campus`, `library`, `archive`, `papers`, ...) or ranks
-  operations for a Turkish or English query, returning the input schema of each match.
-- `itu_call` runs a read-only operation with arguments validated against that schema.
+  operations for a Turkish or English query. The two best matches include their full
+  input schema.
 
 Write actions, tools that store files on the server, mail tools, page-view tools and a
 few frequent entry points (`get_dashboard`, `list_courses`, `get_course_overview`,
 `obs_get_schedule`) remain separate tools, so clients still show and confirm them
 individually. Ranking is deterministic and needs no API key or model.
+
+To switch profiles:
+
+- Claude Desktop extension: tick **Compact tool list** in the extension settings.
+- Other local clients: add `"ITU_MCP_TOOL_PROFILE": "router"` to the server's `env`
+  block, or set it in your `.env` file.
+- Remote server: set `ITU_MCP_TOOL_PROFILE=router` in the server environment and
+  restart it. ChatGPT needs **Refresh** in the connector settings to see the new list.
 
 Set `ITU_MCP_CALL_LOG=/path/calls.jsonl` to record one line per tool call with the tool
 name, duration and result size only, for example to compare the profiles.
