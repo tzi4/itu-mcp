@@ -28,10 +28,42 @@ adds three things that neither of them offers:
 3. **A router that saves tokens and time.** Both earlier projects list each
    operation as its own tool; ITU MCP lets you switch whole groups off. Here,
    instead of loading more than 100 tool definitions into every conversation,
-   read-only operations are reached through one compact tool. In my tests, the tool
-   list sent at the start of a conversation shrank to about a third, the model
-   picked the right operation more reliably, and several long, multi-step requests
+   read-only operations are reached through one compact tool. In my tests, this
+   server's share of the first prompt dropped to less than half, the model picked
+   the right operation more reliably, and several long, multi-step requests
    finished noticeably faster. The router is still evolving.
+
+   <details>
+   <summary>Benchmark</summary>
+
+   **Claude Code, Haiku 5.5 (high effort).** 18 real questions about my own
+   account, one run each, measured with `claude -p` and
+   [this script](benchmarks/tool_routing/run_claude.py).
+
+   | Setup | Right operation | Input tokens, all 18 | Cost |
+   |---|---|---|---|
+   | Every tool sent up front | 18/18 | 3.83M | $0.103 |
+   | Router | 18/18 | 3.09M (−19%) | $0.096 (−7%) |
+   | Every tool, with Claude Code's own tool search | 18/18 | 2.25M (−41%) | $0.081 (−21%) |
+   | Router, with Claude Code's own tool search | 17/18 | 2.59M (−32%) | $0.092 (−10%) |
+
+   The first prompt held 75.9k tokens with every tool and 61.7k with the router. A
+   test server with a single tiny tool already brings it to 52k, so this server's own
+   share fell from about 24k to about 10k tokens. Costs fall less
+   than tokens because repeated context is read from the prompt cache.
+
+   Clients that load every tool up front gain the most. Claude Code already defers
+   tool schemas with its own tool search, so there the full list
+   (`ITU_MCP_TOOL_PROFILE=full`) does best.
+
+   **ChatGPT, High effort.** The same 18 questions through my remote server: the
+   router picked the right operation 18/18 times against 17/18 with every tool.
+   Median time was about the same (25.5 s against 24.5 s). Simple one-tool questions
+   took a few seconds longer, while long multi-step ones were faster, for example
+   96 s → 14 s for an exam calendar and 78 s → 38 s for an attendance check.
+   ChatGPT does not report token use.
+
+   </details>
 
 If you'd rather not use write actions, you can switch them off here, or use
 [ITU MCP](https://github.com/yatuk/itu-mcp) or

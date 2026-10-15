@@ -42,6 +42,8 @@ VARIANTS: dict[str, tuple[str, dict[str, str]]] = {
     # Claude Code may defer MCP schemas behind its own tool search.
     "full-search": ("full", {}),
     "router": ("router", {"ENABLE_TOOL_SEARCH": "false"}),
+    # The router alongside Claude Code's own tool search.
+    "router-search": ("router", {}),
 }
 
 

@@ -169,6 +169,8 @@ few frequent entry points (`get_dashboard`, `list_courses`, `get_course_overview
 `obs_get_schedule`) remain separate tools, so clients still show and confirm them
 individually. Ranking is deterministic and needs no API key or model.
 
+Clients that defer tool schemas with their own tool search, such as Claude Code, do
+better with the full list; the [README benchmark](../README.md) shows the numbers.
 To publish every operation as its own tool instead (`ITU_MCP_TOOL_PROFILE=full`):
 
 - Claude Desktop extension: tick **Full tool list** in the extension settings.
