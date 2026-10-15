@@ -36,32 +36,23 @@ adds three things that neither of them offers:
    <details>
    <summary>Benchmark</summary>
 
-   **Claude Code, Haiku 5.5 (high effort).** 18 real questions about my own
-   account, one run each, measured with `claude -p` and
-   [this script](benchmarks/tool_routing/run_claude.py).
+   **ChatGPT, High effort.** 18 real questions about my own account, one fresh chat
+   each, through my remote server.
 
-   | Setup | Right operation | Input tokens, all 18 | Cost |
-   |---|---|---|---|
-   | Every tool sent up front | 18/18 | 3.83M | $0.103 |
-   | Router | 18/18 | 3.09M (−19%) | $0.096 (−7%) |
-   | Every tool, with Claude Code's own tool search | 18/18 | 2.25M (−41%) | $0.081 (−21%) |
-   | Router, with Claude Code's own tool search | 17/18 | 2.59M (−32%) | $0.092 (−10%) |
+   | | Every tool | Router |
+   |---|---|---|
+   | Right operation | 17/18 | 18/18 |
+   | Median time | 24.5 s | 25.5 s |
+   | Exam calendar, a multi-step question | 96 s | 14 s |
+   | Attendance check, a multi-step question | 78 s | 38 s |
 
-   The first prompt held 75.9k tokens with every tool and 61.7k with the router. A
-   test server with a single tiny tool already brings it to 52k, so this server's own
-   share fell from about 24k to about 10k tokens. Costs fall less
-   than tokens because repeated context is read from the prompt cache.
-
-   Clients that load every tool up front gain the most. Claude Code already defers
-   tool schemas with its own tool search, so there the full list
-   (`ITU_MCP_TOOL_PROFILE=full`) does best.
-
-   **ChatGPT, High effort.** The same 18 questions through my remote server: the
-   router picked the right operation 18/18 times against 17/18 with every tool.
-   Median time was about the same (25.5 s against 24.5 s). Simple one-tool questions
-   took a few seconds longer, while long multi-step ones were faster, for example
-   96 s → 14 s for an exam calendar and 78 s → 38 s for an attendance check.
-   ChatGPT does not report token use.
+   Simple one-tool questions took a few seconds longer with the router. ChatGPT
+   does not report token use, so I measured tokens in Claude Code with `claude -p`
+   ([script](benchmarks/tool_routing/run_claude.py), Haiku 5.5, high effort): the
+   router cut this server's share of the first prompt from about 24k to about 10k
+   tokens and the total input of all 18 questions by 19%. Claude Code's own tool
+   search does even better there (41% fewer tokens, with every tool), so in Claude
+   Code use the full list: `ITU_MCP_TOOL_PROFILE=full`.
 
    </details>
 
