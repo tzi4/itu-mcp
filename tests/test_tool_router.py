@@ -14,7 +14,9 @@ os.environ.setdefault("NINOVA_PASSWORD", "dummy")
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
 from ninova_mcp import server  # noqa: E402
-from ninova_mcp.tool_catalog import DOMAINS, KEYWORDS, TOOL_DOMAIN  # noqa: E402
+from ninova_mcp.tool_catalog import (  # noqa: E402
+    DOMAINS, KEYWORDS, REQUIRED_ONE_OF, TOOL_DOMAIN,
+)
 from ninova_mcp.tool_router import (  # noqa: E402
     CALL_TOOL_NAME, FAST_PATH_TOOL_NAMES, FIND_TOOL_NAME, PROFILE_ENV, fold,
     selected_profile, tokenize,
@@ -46,6 +48,17 @@ class CatalogTests(unittest.TestCase):
 
     def test_keywords_name_known_tools(self) -> None:
         self.assertLessEqual(set(KEYWORDS), set(TOOL_DOMAIN))
+
+    def test_required_choices_name_optional_parameters(self) -> None:
+        mcp = FastMCP("test")
+        server.register_tools(mcp, server.NinovaMcpApp(), server.LOCAL_TOOL_NAMES, profile="full")
+        tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
+        for name, groups in REQUIRED_ONE_OF.items():
+            schema = tools[name].inputSchema
+            for param in {param for group in groups for param in group}:
+                with self.subTest(operation=name, param=param):
+                    self.assertIn(param, schema["properties"])
+                    self.assertNotIn(param, schema.get("required", []))
 
 
 class TextTests(unittest.TestCase):
@@ -155,6 +168,13 @@ class RankingTests(unittest.TestCase):
         for name in ("submit_assignment(", "mail_list_inbox(", "get_dashboard("):
             self.assertNotIn(name, description)
 
+    def test_index_marks_required_choices(self) -> None:
+        tools = {tool.name: tool for tool in asyncio.run(self.mcp.list_tools())}
+        description = tools[CALL_TOOL_NAME].description
+        self.assertIn("obs_get_course_grades(class_id | course, semester?, include_midterms?, "
+                      "include_letter?)", description)
+        self.assertIn("get_assignment_upload_slots(upload_url | course+assignment)", description)
+
     def test_published_tools_point_to_themselves(self) -> None:
         found = _call(self.mcp, FIND_TOOL_NAME, {"query": "ödev teslim et yükle"})
         submit = next(m for m in found["matches"] if m["operation"] == "submit_assignment")
@@ -193,6 +213,24 @@ class CallTests(unittest.TestCase):
                     result = _call(self.mcp, CALL_TOOL_NAME, {"operation": operation, "arguments": {}})
                 self.assertEqual(result["error"], "not_routed")
                 write.assert_not_called()
+
+    def test_missing_required_choice_does_not_run(self) -> None:
+        with mock.patch.object(server.NinovaMcpApp, "obs_get_course_grades") as read:
+            result = _call(self.mcp, CALL_TOOL_NAME,
+                           {"operation": "obs_get_course_grades", "arguments": {"semester": "202610"}})
+        read.assert_not_called()
+        self.assertEqual(result["error"], "invalid_arguments")
+        self.assertEqual(result["message"], "Pass one of: class_id; course.")
+        self.assertIn("class_id", result["input_schema"]["properties"])
+
+    def test_failed_operation_returns_its_schema(self) -> None:
+        # A one-letter query fails before any network access.
+        result = _call(self.mcp, CALL_TOOL_NAME,
+                       {"operation": "obs_search_courses", "arguments": {"query": "a"}})
+        self.assertEqual(result["error"], "operation_failed")
+        self.assertIn("at least two characters", result["message"])
+        self.assertIn("query", result["input_schema"]["properties"])
+        self.assertTrue(result["untrusted_external_content"])
 
     def test_unknown_operation_suggests_names(self) -> None:
         result = _call(self.mcp, CALL_TOOL_NAME, {"operation": "cafeteria menu", "arguments": {}})

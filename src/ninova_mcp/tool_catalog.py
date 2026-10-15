@@ -208,3 +208,12 @@ KEYWORDS: dict[str, str] = {
     "search": "makale ara literatür",
     "fetch": "makale getir",
 }
+
+# Operations whose parameters are all optional in the schema but which need one
+# of these groups to run. Each group is complete when all its members are given.
+REQUIRED_ONE_OF: dict[str, tuple[tuple[str, ...], ...]] = {
+    "obs_get_course_grades": (("class_id",), ("course",)),
+    "obs_get_attendance": (("class_id",), ("course",)),
+    "get_assignment_upload_slots": (("upload_url",), ("course", "assignment")),
+    "archive_fill_rate": (("crn",), ("course_code",)),
+}

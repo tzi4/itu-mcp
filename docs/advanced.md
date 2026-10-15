@@ -155,8 +155,10 @@ the start of each conversation. With `ITU_MCP_TOOL_PROFILE=router`, read-only
 operations are reached through two tools instead:
 
 - `itu_call` runs a read-only operation with arguments validated against its schema.
-  Its description lists every routed operation as `name(required, optional?)`, so a
-  clear request needs no lookup first.
+  Its description lists every routed operation as `name(required, optional?)`, with
+  `a | b+c` where one group of arguments is required, so a clear request needs no
+  lookup first. Missing or invalid arguments, and failed operations, return the
+  operation's input schema so the model can correct the call.
 - `itu_find_tool` lists a domain (`ninova`, `obs`, `registration`, `portal`,
   `planning`, `public`, `campus`, `library`, `archive`, `papers`, ...) or ranks
   operations for a Turkish or English query. The two best matches include their full

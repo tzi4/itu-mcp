@@ -33,7 +33,7 @@ from collections import Counter
 from collections.abc import Iterable
 from typing import Any
 
-from .tool_catalog import DOMAINS, KEYWORDS, TOOL_DOMAIN
+from .tool_catalog import DOMAINS, KEYWORDS, REQUIRED_ONE_OF, TOOL_DOMAIN
 
 PROFILE_ENV = "ITU_MCP_TOOL_PROFILE"
 FULL_PROFILE = "full"
@@ -56,6 +56,7 @@ NEVER_ROUTED_DOMAINS = frozenset({"mail"})
 # ChatGPT deep research expects these two names.
 NEVER_ROUTED_TOOL_NAMES = frozenset({"search", "fetch"})
 
+MAX_ERROR_MESSAGE = 500
 DEFAULT_FIND_LIMIT = 5
 MAX_FIND_LIMIT = 10
 # Only the leading matches carry a full input schema; the rest are summaries.
@@ -252,11 +253,14 @@ class ToolRouter:
         return entry
 
     def signature(self, name: str) -> str:
-        """``name(required, optional?)`` from the operation's input schema."""
+        """``name(required, optional?)``; ``a | b+c`` marks a required choice."""
         schema = self.operations[name].get("input_schema") or {}
         required = set(schema.get("required") or ())
-        params = (param if param in required else param + "?"
-                  for param in schema.get("properties") or {})
+        groups = REQUIRED_ONE_OF.get(name, ())
+        grouped = {param for group in groups for param in group}
+        params = [" | ".join("+".join(group) for group in groups)] if groups else []
+        params += [param if param in required else param + "?"
+                   for param in schema.get("properties") or {} if param not in grouped]
         return f"{name}({', '.join(params)})"
 
     def operation_index(self) -> str:
@@ -316,13 +320,20 @@ class ToolRouter:
         schema = self.operations[operation].get("input_schema") or {}
         validator_class = jsonschema.validators.validator_for(schema)
         error = jsonschema.exceptions.best_match(validator_class(schema).iter_errors(arguments))
-        if error is None:
-            return None
+        if error is not None:
+            message, path = error.message, [str(part) for part in error.absolute_path]
+        else:
+            groups = REQUIRED_ONE_OF.get(operation, ())
+            given = {key for key, value in arguments.items() if value not in (None, "")}
+            if not groups or any(set(group) <= given for group in groups):
+                return None
+            message = "Pass one of: " + "; ".join(" and ".join(group) for group in groups) + "."
+            path = []
         return {
             "error": "invalid_arguments",
             "operation": operation,
-            "message": error.message,
-            "path": [str(part) for part in error.absolute_path],
+            "message": message,
+            "path": path,
             "input_schema": compact_schema(schema),
         }
 
@@ -343,7 +354,21 @@ class ToolRouter:
         problem = self.validation_error(operation, arguments)
         if problem is not None:
             return problem
-        return await self.manager.call_tool(operation, arguments, context=context, convert_result=False)
+        try:
+            return await self.manager.call_tool(operation, arguments, context=context,
+                                                convert_result=False)
+        except Exception as error:  # noqa: BLE001 - reported to the model, not swallowed
+            # Show the schema with the failure so a guessed argument can be fixed in
+            # one retry. The message may quote ITU pages, so it is marked untrusted.
+            return {
+                "error": "operation_failed",
+                "operation": operation,
+                "message": str(error)[:MAX_ERROR_MESSAGE],
+                "input_schema": compact_schema(self.operations[operation].get("input_schema") or {}),
+                "hint": "If an argument caused this, correct it against input_schema and retry; "
+                        "otherwise report the failure.",
+                "untrusted_external_content": True,
+            }
 
 
 FIND_TOOL_DESCRIPTION = (
