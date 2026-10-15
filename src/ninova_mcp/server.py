@@ -4,6 +4,7 @@ import argparse
 import functools
 import inspect
 import json
+import logging
 import math
 import mimetypes
 import os
@@ -5792,6 +5793,7 @@ UNSTRUCTURED_TOOL_NAMES = {
 
 
 CALL_LOG_ENV = "ITU_MCP_CALL_LOG"
+LOGGER = logging.getLogger(__name__)
 
 
 def record_tool_call(tool: str, started: float, result: Any, failed: bool,
@@ -5817,7 +5819,7 @@ def record_tool_call(tool: str, started: float, result: Any, failed: bool,
         with open(path, "a", encoding="utf-8") as stream:
             stream.write(json.dumps(entry) + "\n")
     except Exception:  # pragma: no cover - observability must never break a call
-        pass
+        LOGGER.debug("Could not write the tool call log entry.", exc_info=True)
 
 
 def server_instructions(base: str, profile: str | None = None) -> str:
