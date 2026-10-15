@@ -12,24 +12,30 @@ This project is a fork of [ITU MCP](https://github.com/yatuk/itu-mcp) by
 [yatuk](https://github.com/yatuk), which I've also contributed to. ITU MCP itself
 builds on [Ninova MCP](https://github.com/hikmedit/ninova-mcp) by
 [Hikmet Gultekin](https://github.com/hikmedit). It connects your AI assistant to
-Istanbul Technical University (ITU) services such as Ninova, OBS, Portal, ITU Mail
-and the library, and runs on your own computer or server. Three things make this
-fork different:
+Istanbul Technical University services such as Ninova, OBS, Portal, ITU Mail and the
+library, and runs on your own computer or server.
 
-1. **Write actions, not only reads.** Your assistant can also submit an assignment,
-   renew or reserve a library book and save an OBS registration draft. Every write
-   action asks for your explicit confirmation first.
+Both earlier projects are great if you mainly want to read your ITU data. This fork
+adds three things that neither of them offers:
+
+1. **Write actions everywhere, including ChatGPT.** Ninova MCP is read-only, and ITU
+   MCP offers a few write actions to local clients only. Here your assistant can
+   submit an assignment, renew or reserve a library book and save an OBS registration
+   draft from remote clients such as ChatGPT on your phone, too. Every write action
+   asks for your explicit confirmation first.
 2. **PaperBridge.** Your assistant can read papers behind publisher paywalls through
    your own university access, not only open-access papers.
-3. **A router that saves tokens and time.** Instead of loading more than 100 tool
-   definitions into every conversation, read-only operations are reached through one
-   compact tool. In my tests, the tool list sent at the start of a conversation
-   shrank to about a third, the model picked the right operation more reliably, and
-   several long, multi-step requests finished noticeably faster. The router is still
-   evolving.
+3. **A router that saves tokens and time.** Both earlier projects list each
+   operation as its own tool; ITU MCP lets you switch whole groups off. Here,
+   instead of loading more than 100 tool definitions into every conversation,
+   read-only operations are reached through one compact tool. In my tests, the tool
+   list sent at the start of a conversation shrank to about a third, the model
+   picked the right operation more reliably, and several long, multi-step requests
+   finished noticeably faster. The router is still evolving.
 
-If you'd rather not use write actions, you can switch them off, or use the original
-[ITU MCP](https://github.com/yatuk/itu-mcp).
+If you'd rather not use write actions, you can switch them off here, or use
+[ITU MCP](https://github.com/yatuk/itu-mcp) or
+[Ninova MCP](https://github.com/hikmedit/ninova-mcp).
 
 ### Why write actions?
 
@@ -58,8 +64,9 @@ opens publishers such as ScienceDirect, is coming soon.
 I contributed to ITU MCP and still do. Some design choices here differ from the
 original project, such as offering write actions, so I continue them in this fork.
 If PaperBridge or the router don't interest you, or you want a strictly read-only
-server, have a look at the original [ITU MCP](https://github.com/yatuk/itu-mcp)
-too. This fork keeps the original Git history, MIT license and attribution.
+server, have a look at [ITU MCP](https://github.com/yatuk/itu-mcp) and
+[Ninova MCP](https://github.com/hikmedit/ninova-mcp) too. This fork keeps the
+original Git history, MIT license and attribution.
 
 ## What is ITU MCP?
 
