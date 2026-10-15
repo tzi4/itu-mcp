@@ -8,41 +8,72 @@
 
 # ITU MCP + PaperBridge
 
-ITU MCP + PaperBridge brings Istanbul Technical University (ITU) courses, campus
-services and academic research together in a single MCP connection. It runs on
-your own device or server.
+This project is a fork of [ITU MCP](https://github.com/yatuk/itu-mcp) by
+[yatuk](https://github.com/yatuk), which I've also contributed to. ITU MCP itself
+builds on [Ninova MCP](https://github.com/hikmedit/ninova-mcp) by
+[Hikmet Gultekin](https://github.com/hikmedit). It connects your AI assistant to
+Istanbul Technical University (ITU) services such as Ninova, OBS, Portal, ITU Mail
+and the library, and runs on your own computer or server. Three things make this
+fork different:
 
-I maintain this repository as an **independently developed fork of
-[yatuk/itu-mcp](https://github.com/yatuk/itu-mcp)**. Thanks to
-[Hikmet Gultekin / yatuk](https://github.com/yatuk), the creator of ITU MCP. I've
-kept the original Git history, MIT license and project attribution.
+1. **Write actions, not only reads.** Your assistant can also submit an assignment,
+   renew or reserve a library book and save an OBS registration draft. Every write
+   action asks for your explicit confirmation first.
+2. **PaperBridge.** Your assistant can read papers behind publisher paywalls through
+   your own university access, not only open-access papers.
+3. **A router that saves tokens and time.** Instead of loading more than 100 tool
+   definitions into every conversation, read-only operations are reached through one
+   compact tool. In my tests, the tool list sent at the start of a conversation
+   shrank to about a third, the model picked the right operation more reliably, and
+   several long, multi-step requests finished noticeably faster. The router is still
+   evolving.
 
-I maintain this fork around the setup I use: ITU campus tools and PaperBridge
-research workflows in one MCP server. I also aim to contribute suitable
-university-tool improvements back to the original project.
+If you'd rather not use write actions, you can switch them off, or use the original
+[ITU MCP](https://github.com/yatuk/itu-mcp).
 
-In this fork, I've brought together OBS reliability fixes, registration planning,
-course schedule filters, help ticket details and PaperBridge. Each user runs it
-with their own account and storage.
+### Why write actions?
 
-Unlike the original project, this fork also offers write actions to remote
-clients such as ChatGPT: assignment submission, library renewals/reservations and
-OBS registration drafts. They are on by default, can be switched off, and every
-action still requires explicit confirmation.
+Uploading a finished assignment to Ninova, renewing a library book or updating your
+registration draft usually means signing in to another site and clicking through it.
+Here you ask your assistant instead. It prepares the action, shows you exactly what
+will happen and acts only after you confirm, then reports the result so you can
+check it.
+
+Sending an email you drafted, for example to an instructor, and opening an ITU help
+ticket are coming soon.
+
+### Why PaperBridge?
+
+When you ask ChatGPT, Claude or another assistant to research a topic, it can read
+open papers. Most peer-reviewed articles, however, sit behind a paywall. As ITU
+students we can read many of them through the university's subscriptions by signing
+in with our ITU account. PaperBridge brings that access to your assistant: it
+retrieves a paper you are allowed to read through your own institutional access, so
+your assistant can read and explain its full text, equations and figures. It
+currently works with IEEE Xplore and Springer Nature Link; OpenAthens access, which
+opens publishers such as ScienceDirect, is coming soon.
+
+### Why a separate fork?
+
+I contributed to ITU MCP and still do. Some design choices here differ from the
+original project, such as offering write actions, so I continue them in this fork.
+If PaperBridge or the router don't interest you, or you want a strictly read-only
+server, have a look at the original [ITU MCP](https://github.com/yatuk/itu-mcp)
+too. This fork keeps the original Git history, MIT license and attribution.
 
 ## What is ITU MCP?
 
-Checking assignments on Ninova, grades on OBS and the dining menu on Portal means
-switching between three tabs. ITU MCP is a small server on your computer that
-lets you ask about all of them in one place, in plain language.
+ITU MCP is a small server that lets your AI assistant answer questions about your
+courses, grades, schedule and campus life from the real ITU systems, in plain
+language.
 
 With your credentials (usually `yourname@itu.edu.tr`), it reads data from
 **Ninova** (the course platform), **OBS** (the student information system) and
 **Portal**. Without credentials, it still reaches public sources such as course
 and final exam schedules, building codes, shuttles, sports facilities,
 announcements and the library catalog. It exposes the results as structured tools
-over the [Model Context Protocol](https://modelcontextprotocol.io). You ask
-Claude, and Claude fetches the real data and answers.
+over the [Model Context Protocol](https://modelcontextprotocol.io). You ask your
+assistant, and it fetches the real data and answers.
 
 | What you need | How ITU MCP answers |
 |:---|---|
@@ -147,7 +178,7 @@ With remote HTTPS access configured, a compatible AI app on your phone can
 connect to that computer too.
 
 You still get the useful part: asking in plain language and letting your assistant
-bring the information together, instead of moving between five tabs. An always-on
+bring the information together for you. An always-on
 server adds availability while your computer is off; both setups use the same
 university and research tools.
 
@@ -198,9 +229,9 @@ allowlist. The [advanced settings](docs/advanced.md) and the
 
 Each installation serves a single user. It does not separate different users or
 document archives that share the same server. This repository does not include
-credentials, private emails, PDFs, browser sessions or archive databases. Saving
-registration drafts is off by default, and submitting an assignment requires
-explicit confirmation. ITU MCP has no official affiliation with ITU.
+credentials, private emails, PDFs, browser sessions or archive databases. Write
+actions are on by default, and each one requires explicit confirmation. ITU MCP
+has no official affiliation with ITU.
 
 ## Development
 
@@ -221,4 +252,12 @@ Base new changes on the `main` branch of this fork and open pull requests agains
 **tzi4/itu-mcp-paperbridge**. The tests use synthetic data, and live account and publisher
 tests run separately. See the [contributing guide](CONTRIBUTING.md).
 
-Original ITU MCP by **yatuk** · Fork and PaperBridge by **tzi4** · [MIT](LICENSE)
+## Acknowledgements
+
+This project stands on two earlier ones. [Ninova MCP](https://github.com/hikmedit/ninova-mcp)
+by [Hikmet Gultekin](https://github.com/hikmedit) was the first open-source,
+credential-based MCP server for ITU Ninova. [ITU MCP](https://github.com/yatuk/itu-mcp)
+by [yatuk](https://github.com/yatuk) built on it and extended it with many more ITU
+services. Thank you both.
+
+Ninova MCP by **Hikmet Gultekin** · ITU MCP by **yatuk** · Fork and PaperBridge by **tzi4** · [MIT](LICENSE)
