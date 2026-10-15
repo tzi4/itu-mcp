@@ -36,7 +36,7 @@
         "NINOVA_PASSWORD": "${user_config.ninova_password}",
         "NINOVA_MAIL_USERNAME": "${user_config.mail_username}",
         "NINOVA_MAIL_PASSWORD": "${user_config.mail_password}",
-        "ITU_MCP_COMPACT_TOOLS": "${user_config.compact_tools}"
+        "ITU_MCP_FULL_TOOLS": "${user_config.full_tools}"
       },
       "platform_overrides": {
         "win32": {
@@ -194,10 +194,10 @@
       "sensitive": true,
       "required": false
     },
-    "compact_tools": {
+    "full_tools": {
       "type": "boolean",
-      "title": "Compact tool list",
-      "description": "Publish a small tool set and reach read-only operations through a search tool. Uses fewer tokens per conversation; write, file and mail tools stay listed.",
+      "title": "Full tool list",
+      "description": "List every operation as its own tool instead of the default compact list, where read-only operations are reached through itu_call. Uses more tokens per conversation.",
       "default": false,
       "required": false
     }

@@ -149,10 +149,10 @@ docker run --rm -p 8000:8000 \
 
 ## Tool profiles
 
-Every operation is published as its own MCP tool by default
-(`ITU_MCP_TOOL_PROFILE=full`). That sends more than 100 tool schemas to the model at
-the start of each conversation. With `ITU_MCP_TOOL_PROFILE=router`, read-only
-operations are reached through two tools instead:
+The server has more than 100 operations. Sending every tool schema to the model at the
+start of each conversation costs tokens and makes the right tool harder to pick, so by
+default (`ITU_MCP_TOOL_PROFILE=router`) read-only operations are reached through two
+tools instead:
 
 - `itu_call` runs a read-only operation with arguments validated against its schema.
   Its description lists every routed operation as `name(required, optional?)`, with
@@ -169,12 +169,12 @@ few frequent entry points (`get_dashboard`, `list_courses`, `get_course_overview
 `obs_get_schedule`) remain separate tools, so clients still show and confirm them
 individually. Ranking is deterministic and needs no API key or model.
 
-To switch profiles:
+To publish every operation as its own tool instead (`ITU_MCP_TOOL_PROFILE=full`):
 
-- Claude Desktop extension: tick **Compact tool list** in the extension settings.
-- Other local clients: add `"ITU_MCP_TOOL_PROFILE": "router"` to the server's `env`
+- Claude Desktop extension: tick **Full tool list** in the extension settings.
+- Other local clients: add `"ITU_MCP_TOOL_PROFILE": "full"` to the server's `env`
   block, or set it in your `.env` file.
-- Remote server: set `ITU_MCP_TOOL_PROFILE=router` in the server environment and
+- Remote server: set `ITU_MCP_TOOL_PROFILE=full` in the server environment and
   restart it. ChatGPT needs **Refresh** in the connector settings to see the new list.
 
 Set `ITU_MCP_CALL_LOG=/path/calls.jsonl` to record one line per tool call with the tool

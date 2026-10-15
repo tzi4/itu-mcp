@@ -17,6 +17,10 @@ from ninova_mcp.papers_client import PAPER_TOOLS
 from ninova_mcp.remote import _selected_remote_tool_names, _build_fastmcp
 from ninova_mcp.server import NinovaMcpApp, SERVER_INSTRUCTIONS
 
+# These contract tests cover every tool, so they serve the full tool profile.
+os.environ.setdefault("ITU_MCP_TOOL_PROFILE", "full")
+
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -168,7 +172,7 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
                          rights=Rights(True, True, "Own synthetic fixture"))
             env = {"PYTHONPATH": os.pathsep.join([str(ROOT / "src"), str(Path(paperbridge.__file__).parents[1])]),
                    "PAPERBRIDGE_DATA_DIR": str(root / "papers"), "NINOVA_STATE_DIR": str(root / "itu"),
-                   "NINOVA_USERNAME": "", "NINOVA_PASSWORD": ""}
+                   "NINOVA_USERNAME": "", "NINOVA_PASSWORD": "", "ITU_MCP_TOOL_PROFILE": "full"}
             params = StdioServerParameters(command=sys.executable, args=["-m", "ninova_mcp"],
                                           cwd=temp, env=env)
             async with stdio_client(params) as (read, write):

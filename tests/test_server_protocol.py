@@ -16,6 +16,10 @@ from pathlib import Path
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+# These contract tests cover every tool, so they serve the full tool profile.
+os.environ.setdefault("ITU_MCP_TOOL_PROFILE", "full")
+
+
 ROOT = Path(__file__).resolve().parents[1]
 
 

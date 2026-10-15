@@ -12,6 +12,10 @@ from ninova_mcp.remote_files import ManagedFiles, RemoteNinovaMcpApp, MIB
 from ninova_mcp.server import NinovaMcpApp
 
 
+# These contract tests cover every tool, so they serve the full tool profile.
+os.environ.setdefault("ITU_MCP_TOOL_PROFILE", "full")
+
+
 class RemoteFilesTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

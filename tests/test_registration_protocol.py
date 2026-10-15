@@ -16,6 +16,10 @@ from mcp.client.stdio import stdio_client
 from test_grade_distribution import OFFICIAL_HTML
 from ninova_mcp.server import LOCAL_TOOL_NAMES
 
+# These contract tests cover every tool, so they serve the full tool profile.
+os.environ.setdefault("ITU_MCP_TOOL_PROFILE", "full")
+
+
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRATION_TOOLS = (
     "obs_get_registration_draft",

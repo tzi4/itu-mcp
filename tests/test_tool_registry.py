@@ -8,6 +8,7 @@ shared MCP contract.
 from __future__ import annotations
 
 import inspect
+import os
 import unittest
 
 from ninova_mcp.server import (
@@ -17,6 +18,10 @@ from ninova_mcp.server import (
     NinovaMcpApp,
     register_tools,
 )
+
+
+# These contract tests cover every tool, so they serve the full tool profile.
+os.environ.setdefault("ITU_MCP_TOOL_PROFILE", "full")
 
 
 # Fixed public expectations remain independent of the production registry.

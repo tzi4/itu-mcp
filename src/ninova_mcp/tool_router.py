@@ -1,7 +1,7 @@
 """Router tool profile: find an operation, then call it.
 
-With ``ITU_MCP_TOOL_PROFILE=router`` the server publishes a small set of
-tools instead of every operation. Read-only operations stay registered on a
+By default (``ITU_MCP_TOOL_PROFILE=router``) the server publishes a small set
+of tools instead of every operation; ``full`` publishes every operation. Read-only operations stay registered on a
 private FastMCP ``ToolManager`` and are reached through two public tools:
 
 - ``itu_find_tool`` lists a domain or ranks operations for a query and
@@ -93,7 +93,7 @@ _MAX_SUFFIX_PASSES = 3
 
 def selected_profile(env: dict[str, str] | None = None) -> str:
     """Return the configured tool profile; unknown values fail at startup."""
-    value = ((env if env is not None else os.environ).get(PROFILE_ENV) or FULL_PROFILE)
+    value = ((env if env is not None else os.environ).get(PROFILE_ENV) or ROUTER_PROFILE)
     value = value.strip().lower()
     if value not in PROFILES:
         raise RuntimeError(

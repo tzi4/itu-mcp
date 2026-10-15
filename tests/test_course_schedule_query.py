@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import os
 from pathlib import Path
 import unittest
 from unittest.mock import Mock
@@ -11,6 +12,10 @@ from ninova_mcp.obs_client import ObsError
 from ninova_mcp.parsing import extract_course_schedule_table
 from ninova_mcp.planning import filter_course_schedule
 from ninova_mcp.server import NinovaMcpApp, TOOLS, register_tools
+
+
+# These contract tests cover every tool, so they serve the full tool profile.
+os.environ.setdefault("ITU_MCP_TOOL_PROFILE", "full")
 
 
 class CourseScheduleQueryTests(unittest.TestCase):

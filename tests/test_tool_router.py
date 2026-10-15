@@ -72,8 +72,8 @@ class TextTests(unittest.TestCase):
 
 
 class ProfileTests(unittest.TestCase):
-    def test_default_profile_is_full(self) -> None:
-        self.assertEqual(selected_profile({}), "full")
+    def test_default_profile_is_router(self) -> None:
+        self.assertEqual(selected_profile({}), "router")
 
     def test_unknown_profile_fails(self) -> None:
         with self.assertRaises(RuntimeError):
