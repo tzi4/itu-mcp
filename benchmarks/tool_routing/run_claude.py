@@ -134,7 +134,7 @@ def score(question: dict[str, Any], parsed: dict[str, Any]) -> dict[str, Any]:
 
 
 def run_one(prompt: str, model: str, config: Path, extra_env: dict[str, str],
-            workdir: Path, timeout: int) -> tuple[list[str], float, int]:
+            workdir: Path, timeout: int, effort: str = "") -> tuple[list[str], float, int]:
     command = [
         "claude", "-p", prompt,
         "--model", model,
@@ -145,6 +145,8 @@ def run_one(prompt: str, model: str, config: Path, extra_env: dict[str, str],
         "--allowedTools", f"mcp__{SERVER_KEY}",
         "--append-system-prompt", SYSTEM_APPEND,
     ]
+    if effort:
+        command += ["--effort", effort]
     env = {**os.environ, **extra_env}
     started = time.monotonic()
     completed = subprocess.run(
@@ -164,6 +166,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--questions", type=Path, default=HERE / "questions.json")
     parser.add_argument("--only", default="", help="Comma-separated question ids.")
     parser.add_argument("--model", default="sonnet")
+    parser.add_argument("--effort", default="", help="Optional claude --effort level.")
     parser.add_argument("--repeat", type=int, default=1)
     parser.add_argument("--timeout", type=int, default=420)
     args = parser.parse_args(argv)
@@ -197,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
                 label = f"{variant}/{question['id']}/{repetition}"
                 try:
                     lines, wall, code = run_one(question["prompt"], args.model, config,
-                                                extra_env, workdir, args.timeout)
+                                                extra_env, workdir, args.timeout, args.effort)
                 except subprocess.TimeoutExpired:
                     lines, wall, code = [], float(args.timeout), -1
                 raw_path = out / "raw" / f"{variant}__{question['id']}__{repetition}.jsonl"
