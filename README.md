@@ -18,11 +18,11 @@ library, and runs on your own computer or server.
 Both earlier projects are great if you mainly want to read your ITU data. This fork
 adds three things that neither of them offers:
 
-1. **Write actions everywhere, including ChatGPT.** Ninova MCP is read-only, and ITU
-   MCP offers a few write actions to local clients only. Here your assistant can
-   submit an assignment, send an email, open a help ticket and save an OBS registration
-   draft from remote clients such as ChatGPT on your phone, too. Every write action
-   asks for your explicit confirmation first.
+1. **Write actions.** Ninova MCP is read-only, and ITU MCP offers a few write actions
+   to local clients only. Here your assistant can submit an assignment, send an email,
+   open a help ticket and save an OBS registration draft, whether the server runs on
+   your computer or on your own server, with whichever assistant you use. Every write
+   action asks for your explicit confirmation first.
 2. **PaperBridge.** Your assistant can read papers behind publisher paywalls through
    your own university access, not only open-access papers.
 3. **A router that saves tokens and time.** Both earlier projects list each
