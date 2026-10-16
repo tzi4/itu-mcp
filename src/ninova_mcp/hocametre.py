@@ -28,9 +28,9 @@ Two properties of the source shape the design:
 - The data is anonymous student opinion, not an İTÜ source. Every result is
   marked as untrusted external content.
 
-The tools are off unless the operator sets ``ITU_MCP_HOCAMETRE=1``.
-Reads are cached (6 hours by default) and spaced
-at least ``MIN_REQUEST_INTERVAL_SECONDS`` apart.
+The tools are on by default and ``ITU_MCP_HOCAMETRE=0`` turns them off. Reads
+are cached (6 hours by default) and spaced at least
+``MIN_REQUEST_INTERVAL_SECONDS`` apart.
 """
 
 from __future__ import annotations
@@ -113,8 +113,8 @@ class HocametreError(RuntimeError):
 
 
 def hocametre_enabled() -> bool:
-    """HocaMetre reads are off unless the operator sets ITU_MCP_HOCAMETRE=1."""
-    return env_switch(ENABLE_ENV, default=False)
+    """HocaMetre reads are on unless the operator sets ITU_MCP_HOCAMETRE=0."""
+    return env_switch(ENABLE_ENV)
 
 
 def strip_academic_titles(name: str | None) -> str:

@@ -296,17 +296,17 @@ class ServerToolTests(unittest.TestCase):
         app._obs_public = _FakeObsPublic(SCHEDULE)  # type: ignore[assignment]
         return app
 
-    def test_tools_are_off_by_default(self) -> None:
+    def test_tools_are_on_by_default_and_can_be_turned_off(self) -> None:
         session = FakeSession()
         app = self._app(session)
         with mock.patch.dict(os.environ, {ENABLE_ENV: ""}):
+            self.assertTrue(hocametre_enabled())
+        with mock.patch.dict(os.environ, {ENABLE_ENV: "0"}):
             self.assertFalse(hocametre_enabled())
             with self.assertRaisesRegex(HocametreError, ENABLE_ENV):
                 app.hocametre_instructor("Ayşe Tosun")
             with self.assertRaisesRegex(HocametreError, ENABLE_ENV):
                 app.hocametre_course_sections("BBF 101E")
-        with mock.patch.dict(os.environ, {ENABLE_ENV: "0"}):
-            self.assertFalse(hocametre_enabled())
         self.assertEqual(session.calls, [])
         self.assertEqual(app._obs_public.calls, [])  # type: ignore[union-attr]
 

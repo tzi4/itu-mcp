@@ -241,8 +241,8 @@
     "hocametre": {
       "type": "boolean",
       "title": "HocaMetre instructor ratings",
-      "description": "Read anonymous student ratings of instructors from notkutusu.com. Off by default.",
-      "default": false,
+      "description": "Read anonymous student ratings of instructors from notkutusu.com.",
+      "default": true,
       "required": false
     }
   },

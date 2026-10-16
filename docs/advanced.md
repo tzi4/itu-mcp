@@ -66,7 +66,7 @@ export ITU_ARCHIVE_CACHE_TTL_SECONDS="21600"         # archive regenerates daily
 export PREREQ_CROSSCHECK_BASE_URL="<community pipe-delimited course feed URL>"
 export PREREQ_CROSSCHECK_CACHE_TTL_SECONDS="21600"    # community prerequisite cross-check
 export ITU_MCP_UPDATE_CHECK="0"                      # turn off the daily update check
-export ITU_MCP_HOCAMETRE="0"                         # 1 = turn on notkutusu.com HocaMetre ratings
+export ITU_MCP_HOCAMETRE="0"                         # turn off notkutusu.com HocaMetre ratings
 export ITU_MCP_HOCAMETRE_CACHE_TTL_SECONDS="21600"   # HocaMetre rating and search cache
 ```
 
@@ -489,7 +489,7 @@ a year, and this surfaces that without a separate lookup.
 The archive client uses its own cookie-free session and a single-host HTTPS allowlist derived
 from `ITU_ARCHIVE_BASE_URL`.
 
-### HocaMetre tools (no credentials, off by default)
+### HocaMetre tools (no credentials)
 
 [notkutusu.com](https://notkutusu.com/hocametre) is a student-run site where ITU students
 rate instructors anonymously. These tools read its ratings so sections can be compared by
@@ -518,8 +518,8 @@ results carry a `status`:
 The ratings are student opinion, not an ITU source, and small vote counts are unreliable.
 Results are marked as untrusted external content.
 
-**Turning it on.** Set `ITU_MCP_HOCAMETRE=1` (or tick *HocaMetre instructor ratings* in the
-`.mcpb` settings). The tools are off by default.
+The tools are on by default; `ITU_MCP_HOCAMETRE=0` (or unticking *HocaMetre
+instructor ratings* in the `.mcpb` settings) turns them off.
 
 When it is on, the client sends only GET requests to `mordor-api-production.notkutusu.com`
 over HTTPS, with its own cookie-free session and an exact host allowlist. It never sends ITU

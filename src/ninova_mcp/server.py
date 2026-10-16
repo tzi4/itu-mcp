@@ -168,7 +168,7 @@ SERVER_INSTRUCTIONS = PAPER_INSTRUCTIONS + (
     "field — an empty archive result can mean the term was never captured, and that is "
     "not the same as 'no sections'.\n\n"
     "HocaMetre tools (hocametre_*) read anonymous student ratings of instructors from "
-    "notkutusu.com. They are off unless the operator sets ITU_MCP_HOCAMETRE=1. Use "
+    "notkutusu.com. Use "
     "hocametre_course_sections to compare a course's sections by instructor and "
     "hocametre_instructor for one person. Present the scores as student opinion with "
     "their vote counts, not as fact. When status is 'candidates', the name matched no "
@@ -3108,8 +3108,7 @@ class NinovaMcpApp:
     def _require_hocametre() -> None:
         if not hocametre_enabled():
             raise HocametreError(
-                "HocaMetre lookups are off. Enable them "
-                f"with {HOCAMETRE_ENABLE_ENV}=1."
+                f"HocaMetre lookups are turned off by the operator ({HOCAMETRE_ENABLE_ENV}=0)."
             )
 
     @staticmethod
@@ -6241,7 +6240,7 @@ TOOLS: list[dict[str, Any]] = [
             "grading generosity, helpfulness, homework load, attendance policy and teaching "
             "skills, each 1-5 (higher is better for the student) with vote counts. Academic "
             "titles are ignored. Profiles with exactly this name are merged; partial matches "
-            "come back as candidates. Off unless the operator enables ITU_MCP_HOCAMETRE."
+            "come back as candidates. ITU_MCP_HOCAMETRE=0 turns it off."
         ),
         "inputSchema": {
             "type": "object",
@@ -6269,7 +6268,7 @@ TOOLS: list[dict[str, Any]] = [
             "List every section of one course (CRN, instructor, sessions, capacity, enrolled) "
             "with each instructor's notkutusu.com HocaMetre student ratings, so sections can be "
             "compared by instructor. Reads the live public OBS schedule, or an archived term "
-            "when term is given. Off unless the operator enables ITU_MCP_HOCAMETRE."
+            "when term is given. ITU_MCP_HOCAMETRE=0 turns it off."
         ),
         "inputSchema": {
             "type": "object",
