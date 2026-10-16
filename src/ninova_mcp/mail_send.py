@@ -289,9 +289,10 @@ class ItuMailSender:
                 ],
             },
             "next_step": (
-                "Show the user this exact preview. Only after they explicitly approve it, call "
-                "mail_send_message with this draft_id and confirm=true. To change anything, "
-                "prepare a new draft instead."
+                "Show the user this exact preview as plain text, not in an email compose card: "
+                "a client's own Send button does not use İTÜ Mail. Only after they explicitly "
+                "approve it, call mail_send_message with this draft_id and confirm=true. To "
+                "change anything, prepare a new draft instead."
             ),
         }
 
