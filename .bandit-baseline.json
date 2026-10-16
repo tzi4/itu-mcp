@@ -4,14 +4,14 @@
     {
       "path": "src/ninova_mcp/remote_files.py",
       "test_id": "B404",
-      "source_sha256": "cf20c6b2b99bfb5a1c12b6fba5b5271e71bccf6a9593359bb8ad31856a54c379",
+      "source_sha256": "a5d1092665d8d5a876fea8609450c62df2df3eec2840194df1059adad6612435",
       "severity": "LOW",
       "reason": "Bounded text worker: fixed Python module, validated extension and character count; input is bytes, shell is disabled."
     },
     {
       "path": "src/ninova_mcp/remote_files.py",
       "test_id": "B603",
-      "source_sha256": "cf20c6b2b99bfb5a1c12b6fba5b5271e71bccf6a9593359bb8ad31856a54c379",
+      "source_sha256": "a5d1092665d8d5a876fea8609450c62df2df3eec2840194df1059adad6612435",
       "severity": "LOW",
       "reason": "Bounded text worker: fixed Python module, validated extension and character count; input is bytes, shell is disabled."
     },

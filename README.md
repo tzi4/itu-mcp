@@ -68,8 +68,9 @@ Here you ask your assistant instead. It prepares the action, shows you exactly w
 will happen and acts only after you confirm, then reports the result so you can
 check it.
 
-Sending an email you drafted, for example to an instructor, and opening an ITU help
-ticket are coming soon.
+The same goes for email: your assistant can search your whole ITU mailbox, draft a
+message or a reply, for example to an instructor, with attachments, and send it after you
+approve the preview. Opening an ITU help ticket is coming soon.
 
 ### Why PaperBridge?
 
@@ -116,6 +117,8 @@ assistant, and it fetches the real data and answers.
 | "Does the library have this book?" | Public catalog search and copy status |
 | "Read my latest emails, tell me which ones matter, and summarize their PDF or image attachments." | Read-only ITU Mail tools and PDF/JPEG/PNG attachment inspection |
 | "Read the last email I sent and remind me what I asked for." | Read-only sent-mail listing and message reading |
+| "Find the emails from my Linear Algebra course two years ago." | Server-side search across the inbox and sent folder |
+| "Reply to my instructor's last email, attach my report and show me before sending." | A previewed draft, sent only after you approve it |
 | "Scan Ninova for new assignments. Download any new files, start working through the questions, and send me a draft to review." | Assignment discovery and file download; your AI assistant prepares the draft |
 | "Use PaperBridge to read this IEEE or Springer paper through my university access and explain its equations and figures." | DOI lookup, configured institutional retrieval and PDF text/page tools |
 | "Download this assignment, prepare a solution, and upload the reviewed file to Ninova after I confirm." | Assignment files and submission tools; uploads must be enabled and require `confirm=true` |

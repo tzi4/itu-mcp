@@ -197,6 +197,9 @@ own routes such as `/Sinif/<id>.<id>/Notlar`, `/MesajPanosu`, `/Yoklama`, and
 - `mail_list_sent` — list saved sent-message headers and UIDs from the server's sent folder.
 - `mail_get_message` — read one bounded text body and attachment metadata with `BODY.PEEK`. Use `mailbox="SENT"` for a UID from `mail_list_sent`; the default is `INBOX`.
 - `mail_get_attachment` — inspect one size-limited PDF, JPEG, or PNG attachment in memory, using the same `mailbox` as the message read.
+- `mail_search` — search the whole inbox and sent folder on the server by words, sender, recipient, subject and dates; `in_body=true` also searches bodies.
+- `mail_prepare_message` — build a plain-text message, optionally a reply or with attachments, and return its preview and a one-time `draft_id`. Nothing is sent.
+- `mail_send_message` — send that draft exactly as previewed, with `confirm=true`, after you approve it.
 - `refresh_session` — force a new login with the configured credentials.
 - `get_dashboard` — read `/Kampus1` and summarize sections, recent items, and courses.
 - `list_courses` — return the discovered courses from the dashboard (TTL-cached; `refresh` bypasses cache).
@@ -234,19 +237,44 @@ Many list/overview tools accept `compact=true` to shrink long fields (or set `NI
 - Remote HTTP transport does **not** expose upload tools (local stdio only).
 - Always verify the target course/assignment/slot with the user before `confirm=true`.
 
-### Mail read-only scope
+### Mail reading
 
-Mail tools select `INBOX` or the existing sent folder with `readonly=True` and fetch
+Mail reading tools select `INBOX` or the existing sent folder with `readonly=True` and fetch
 content with `BODY.PEEK`. `mail_list_sent` discovers the server's sent folder using its
 IMAP role or a known folder name. If discovery is ambiguous, set
 `NINOVA_MAIL_SENT_MAILBOX` to the existing folder's display name. Message UIDs belong
 to their mailbox: pass `mailbox="SENT"` when reading a sent message or its attachment.
 Listings use descending UID order, which reflects the order messages were added to
 that folder. Only sent copies saved on the IMAP server are available.
-They cannot send, delete, move, flag, or mark messages as read. Attachment inspection accepts
+They cannot delete, move, flag, or mark messages as read. Attachment inspection accepts
 only bounded PDF, JPEG, and PNG data and never executes files. Remote HTTP publishes the mail tools
 by default; `NINOVA_REMOTE_ENABLE_MAIL=0` turns them off and `NINOVA_REMOTE_ALLOWED_TOOLS` can
 further narrow the published tool set.
+
+`mail_search` runs IMAP `SEARCH` on the server, so it covers the whole mailbox without
+downloading it. Header searches take about a second on a mailbox of 5,000 messages;
+body searches scan every message unless `since`/`before` narrow them.
+
+### Sending mail
+
+Sending takes two steps. `mail_prepare_message` validates the message, reads any
+attachments and keeps the finished message in memory for 30 minutes under a random
+`draft_id`; it returns the exact preview. `mail_send_message` takes only that
+`draft_id` and `confirm=true`, sends the stored message once over verified STARTTLS
+(`smtp.itu.edu.tr:587` with your mail credentials) and saves a copy to the sent folder.
+Because the content is not passed again, what is sent is what you approved.
+
+- Recipients must be plain addresses in `itu.edu.tr` or its subdomains, at most 10.
+  `NINOVA_MAIL_SEND_ALLOWED_DOMAINS` changes the list (comma-separated; `*` allows any).
+  This keeps a request hidden in an email or web page from mailing your data elsewhere.
+- Attachments may be PDF, JPEG, PNG, ZIP, DOCX, XLSX, PPTX or UTF-8 TXT files whose
+  content matches the extension, up to 15 MiB each and 20 MiB in total. Over remote
+  HTTP they must be in the managed `uploads` or `downloads` folders.
+- `NINOVA_MAIL_SEND_DAILY_LIMIT` (default 20) caps messages per day for one server process.
+- `NINOVA_MAIL_SAVE_SENT=0` skips the sent-folder copy; `NINOVA_MAIL_SMTP_HOST` and
+  `NINOVA_MAIL_SMTP_PORT` override the server.
+- `NINOVA_MAIL_SEND=0` turns sending off. Over remote HTTP, sending also needs the
+  remote mail tools and remote write actions.
 
 ## Notes
 

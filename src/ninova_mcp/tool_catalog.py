@@ -83,9 +83,9 @@ DOMAINS: dict[str, tuple[str, tuple[str, ...]]] = {
          "archive_search_courses", "archive_list_branches", "archive_compare_terms"),
     ),
     "mail": (
-        "ITU Mail, read-only: inbox, sent messages, message bodies, attachments",
+        "ITU Mail: inbox, sent messages, search, message bodies, attachments, sending a reviewed message",
         ("mail_status", "mail_list_inbox", "mail_list_sent", "mail_get_message",
-         "mail_get_attachment"),
+         "mail_get_attachment", "mail_search", "mail_prepare_message", "mail_send_message"),
     ),
     "papers": (
         "PaperBridge research papers: search, resolve, full text and page views through institutional access",
@@ -200,6 +200,9 @@ KEYWORDS: dict[str, str] = {
     "mail_list_sent": "gönderilen mailler giden kutusu",
     "mail_get_message": "maili oku e-posta içeriği",
     "mail_get_attachment": "mail eki ek dosya",
+    "mail_search": "mail ara eski mailler e-posta arama kimden gelen",
+    "mail_prepare_message": "mail yaz e-posta taslağı hocaya mail at yanıtla cevap ver",
+    "mail_send_message": "maili gönder e-posta gönder onayla",
     "papers_search": "makale ara akademik yayın literatür article paper",
     "papers_resolve": "doi makale bul",
     "papers_get_text": "makale tam metin oku",

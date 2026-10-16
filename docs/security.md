@@ -44,6 +44,10 @@ This project logs in to İTÜ Ninova, OBS, Portal and optionally İTÜ Mail with
   `NINOVA_LIBRARY_CA_BUNDLE`; there is no insecure `verify=false` switch.
 - `ItuMailClient` uses verified IMAPS, selects `INBOX` or the existing sent folder in read-only mode, and
   fetches bodies and attachments with `BODY.PEEK` so unread state is preserved.
+- `ItuMailSender` sends only a message previewed by `mail_prepare_message`, by its one-time
+  draft ID and `confirm=true`, over verified STARTTLS. Recipients are limited to `itu.edu.tr`
+  by default, attachments to allowlisted types whose content matches the extension, and
+  sending to a daily limit. `NINOVA_MAIL_SEND=0` turns it off.
 - Public and library clients apply the same pre-request redirect validation, so an
   allowlisted page cannot bounce the client to localhost or an unrelated host.
 - User input is sent as query/form values, never concatenated into an arbitrary host,

@@ -28,6 +28,11 @@ MAX_MIME_HEADER_BYTES = 64 * 1024
 MAX_PDF_PAGES = 50
 MAX_IMAGE_PIXELS = 25_000_000
 MAX_IMAGE_DIMENSION = 12_000
+MAX_SEARCH_TERMS = 8
+MAX_SEARCH_TERM_CHARS = 200
+# Without a full-text index the server scans every body; 5,000 messages took a minute.
+BODY_SEARCH_TIMEOUT_SECONDS = 180.0
+_HEADER_SEARCH_FIELDS = ("SUBJECT", "FROM", "TO", "CC")
 
 # Conventional names are used only when LIST does not advertise a \\Sent role.
 _SENT_NAMES = (
@@ -368,6 +373,34 @@ def _validate_attachment_identity(
     return filename, content_type, image_dimensions
 
 
+def _search_terms(value: str | None, field: str) -> list[str]:
+    """Split on spaces, keeping "quoted phrases" together."""
+    terms = [quoted or bare for quoted, bare in re.findall(r'"([^"]+)"|(\S+)', value or "")]
+    for term in terms:
+        if len(term) > MAX_SEARCH_TERM_CHARS or any(ord(char) < 32 for char in term):
+            raise ItuMailError(f"{field} terms must be single-line text up to {MAX_SEARCH_TERM_CHARS} characters.")
+    return terms
+
+
+def _search_day(value: str | None, field: str) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError as exc:
+        raise ItuMailError(f"{field} must be a date such as 2024-03-01.") from exc
+
+
+def _search_string(term: str, literal_plus: bool) -> bytes:
+    """An IMAP astring: quoted ASCII, or a non-synchronizing UTF-8 literal."""
+    if term.isascii():
+        return b'"' + term.replace("\\", "\\\\").replace('"', '\\"').encode("ascii") + b'"'
+    if not literal_plus:
+        raise ItuMailError("This mail server cannot search for non-ASCII text.")
+    data = term.encode("utf-8")
+    return b"{" + str(len(data)).encode("ascii") + b"+}\r\n" + data
+
+
 def _format_imap_search_date(value: datetime) -> str:
     month = _IMAP_MONTHS[value.month - 1]
     return f"{value.day:02d}-{month}-{value.year:04d}"
@@ -451,7 +484,7 @@ class ItuMailClient:
             raise ItuMailError("NINOVA_MAIL_TIMEOUT_SECONDS must be between 1 and 120.")
 
     @contextmanager
-    def _connection(self) -> Iterator[Any]:
+    def _connection(self, timeout: float | None = None) -> Iterator[Any]:
         if not self.username or not self.password:
             raise ItuMailAuthError(
                 "Set NINOVA_MAIL_USERNAME/NINOVA_MAIL_PASSWORD or the shared "
@@ -463,7 +496,7 @@ class ItuMailClient:
                 self.host,
                 self.port,
                 ssl_context=ssl.create_default_context(),
-                timeout=self.timeout,
+                timeout=timeout or self.timeout,
             )
         except (OSError, ssl.SSLError) as exc:
             raise ItuMailError(
@@ -499,6 +532,13 @@ class ItuMailClient:
         if mailbox == "INBOX":
             ItuMailClient._select_inbox(connection)
             return
+        status, _ = connection.select(ItuMailClient._sent_mailbox(connection), readonly=True)
+        if status != "OK":
+            raise ItuMailError("Could not open the İTÜ Mail sent mailbox in read-only mode.")
+
+    @staticmethod
+    def _sent_mailbox(connection: Any) -> bytes:
+        """Discover the existing sent folder and return its quoted wire name."""
         status, data = connection.list('""', '"*"')
         if status != "OK":
             raise ItuMailError("İTÜ Mail could not discover the sent mailbox.")
@@ -519,10 +559,7 @@ class ItuMailClient:
                 "to the existing sent folder name. The inbox was not used as a substitute."
             )
         name = candidates.pop()
-        quoted = b'"' + name.replace(b"\\", b"\\\\").replace(b'"', b'\\"') + b'"'
-        status, _ = connection.select(quoted, readonly=True)
-        if status != "OK":
-            raise ItuMailError("Could not open the İTÜ Mail sent mailbox in read-only mode.")
+        return b'"' + name.replace(b"\\", b"\\\\").replace(b'"', b'\\"') + b'"'
 
     @staticmethod
     def _search_uids(
@@ -573,6 +610,32 @@ class ItuMailClient:
             mailbox="SENT", unread_only=False, since_days=since_days, limit=limit,
         )
 
+    @staticmethod
+    def _fetch_headers(connection: Any, uids: list[str], mailbox: str) -> list[dict[str, Any]]:
+        messages: list[dict[str, Any]] = []
+        for uid in uids:
+            status, data = connection.uid(
+                "FETCH",
+                uid,
+                "(UID FLAGS RFC822.SIZE BODY.PEEK[HEADER.FIELDS "
+                "(DATE FROM TO CC SUBJECT MESSAGE-ID)])",
+            )
+            if status != "OK":
+                continue
+            metadata, raw_headers = _payload_tuple(data)
+            message = message_from_bytes(raw_headers, policy=policy.default)
+            flags = _metadata_flags(metadata)
+            messages.append(
+                {
+                    "uid": str(_metadata_number(metadata, b"UID") or uid),
+                    "mailbox": mailbox,
+                    **_message_headers(message),
+                    "size_bytes": _metadata_number(metadata, b"RFC822.SIZE"),
+                    "unread": "\\Seen" not in flags,
+                }
+            )
+        return messages
+
     def _list_messages(
         self, *, mailbox: str, unread_only: bool, since_days: int, limit: int,
     ) -> dict[str, Any]:
@@ -585,29 +648,7 @@ class ItuMailClient:
                 unread_only=bool(unread_only),
                 since_days=since_days,
             )
-            selected = list(reversed(uids[-limit:]))
-            messages: list[dict[str, Any]] = []
-            for uid in selected:
-                status, data = connection.uid(
-                    "FETCH",
-                    uid,
-                    "(UID FLAGS RFC822.SIZE BODY.PEEK[HEADER.FIELDS "
-                    "(DATE FROM TO CC SUBJECT MESSAGE-ID)])",
-                )
-                if status != "OK":
-                    continue
-                metadata, raw_headers = _payload_tuple(data)
-                message = message_from_bytes(raw_headers, policy=policy.default)
-                flags = _metadata_flags(metadata)
-                messages.append(
-                    {
-                        "uid": str(_metadata_number(metadata, b"UID") or uid),
-                        "mailbox": mailbox,
-                        **_message_headers(message),
-                        "size_bytes": _metadata_number(metadata, b"RFC822.SIZE"),
-                        "unread": "\\Seen" not in flags,
-                    }
-                )
+            messages = self._fetch_headers(connection, list(reversed(uids[-limit:])), mailbox)
 
         return {
             "mailbox": mailbox,
@@ -664,6 +705,91 @@ class ItuMailClient:
                 "using its part_id and the same mailbox. Files are parsed or rendered in memory "
                 "and never executed."
             ),
+        }
+
+    def search(
+        self,
+        *,
+        query: str = "",
+        sender: str = "",
+        recipient: str = "",
+        subject: str = "",
+        mailbox: str = "ALL",
+        since: str | None = None,
+        before: str | None = None,
+        unread_only: bool = False,
+        in_body: bool = False,
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        """Search on the server; every term must match, newest UIDs first."""
+        mailbox = str(mailbox or "ALL").strip().upper()
+        mailboxes = ["INBOX", "SENT"] if mailbox == "ALL" else [_mailbox_role(mailbox)]
+        query_fields = ("TEXT",) if in_body else _HEADER_SEARCH_FIELDS
+        filters = [(query_fields, term) for term in _search_terms(query, "query")]
+        filters += [(("FROM",), term) for term in _search_terms(sender, "sender")]
+        filters += [(("TO", "CC"), term) for term in _search_terms(recipient, "recipient")]
+        filters += [(("SUBJECT",), term) for term in _search_terms(subject, "subject")]
+        if not filters:
+            raise ItuMailError("Give query, sender, recipient or subject to search.")
+        if len(filters) > MAX_SEARCH_TERMS:
+            raise ItuMailError(f"Use at most {MAX_SEARCH_TERMS} search terms.")
+        since_day, before_day = _search_day(since, "since"), _search_day(before, "before")
+        limit = max(1, min(int(limit), MAX_LIST_LIMIT))
+
+        results: list[dict[str, Any]] = []
+        matched: dict[str, int] = {}
+        timeout = BODY_SEARCH_TIMEOUT_SECONDS if in_body else None
+        with self._connection(timeout=timeout) as connection:
+            literal_plus = "LITERAL+" in getattr(connection, "capabilities", ())
+            criteria: list[bytes | str] = ["UNSEEN"] if unread_only else []
+            if since_day:
+                criteria += ["SINCE", _format_imap_search_date(since_day)]
+            if before_day:
+                criteria += ["BEFORE", _format_imap_search_date(before_day)]
+            for fields, term in filters:
+                value = _search_string(term, literal_plus)
+                for index, field in enumerate(fields):
+                    criteria += (["OR"] if index < len(fields) - 1 else []) + [field, value]
+            for name in mailboxes:
+                self._select_mailbox(connection, name)
+                status, data = connection.uid("SEARCH", "CHARSET", "UTF-8", *criteria)
+                if status != "OK":
+                    raise ItuMailError("İTÜ Mail could not run that search.")
+                uids = sorted({item.decode("ascii") for item in ((data or [b""])[0] or b"").split()
+                               if item.isdigit()}, key=int)
+                matched[name] = len(uids)
+                results += self._fetch_headers(connection, list(reversed(uids[-limit:])), name)
+
+        results.sort(key=lambda item: item.get("date_iso") or "", reverse=True)
+        return {
+            "mailboxes": mailboxes,
+            "read_only": True,
+            "searched": "headers and body" if in_body else "subject, from, to and cc",
+            "matched_count": sum(matched.values()),
+            "matched_by_mailbox": matched,
+            "returned_count": min(limit, len(results)),
+            "messages": results[:limit],
+        }
+
+    def reply_headers(self, uid: str) -> dict[str, str]:
+        """Read the threading headers of one INBOX message without changing its flags."""
+        uid = str(uid).strip()
+        if not re.fullmatch(r"[1-9][0-9]{0,19}", uid):
+            raise ItuMailError("Message UID must be a positive integer returned by a mail listing.")
+        with self._connection() as connection:
+            self._select_inbox(connection)
+            status, data = connection.uid(
+                "FETCH", uid,
+                "(UID BODY.PEEK[HEADER.FIELDS (FROM REPLY-TO SUBJECT MESSAGE-ID REFERENCES)])",
+            )
+            if status != "OK":
+                raise ItuMailError("İTÜ Mail could not fetch that message UID.")
+            _, raw_headers = _payload_tuple(data)
+        message = message_from_bytes(raw_headers, policy=policy.default)
+        return {
+            name: _decode_header_value(message.get(header), max_chars=4_000)
+            for name, header in (("from", "From"), ("reply_to", "Reply-To"), ("subject", "Subject"),
+                                 ("message_id", "Message-ID"), ("references", "References"))
         }
 
     def get_attachment(

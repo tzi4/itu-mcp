@@ -166,6 +166,7 @@ class RemoteNinovaMcpApp(NinovaMcpApp):
         "library_reserve_item": " First preview with confirm=false and obtain explicit user approval of this exact reservation before confirm=true.",
         "snapshot_page": " Remote: snapshots are stored only in the managed HDD snapshots folder.",
         "diff_snapshot": " Remote: snapshot_path must refer to a snapshot in the managed HDD snapshots folder.",
+        "mail_prepare_message": " Remote: attachments must be files on the server's managed disk, in uploads (staged via SSH/SFTP) or downloads (for example a file saved by download_resource).",
     }
 
     def __init__(self) -> None:
@@ -309,6 +310,14 @@ class RemoteNinovaMcpApp(NinovaMcpApp):
                 raise NinovaError("Transcript response is not a PDF.")
             result = self.files.save([raw], "transcript-en.pdf" if english else "transcript-tr.pdf", directory=output_dir)
             return {**result, "english": english, "statusCode": payload.get("statusCode")}
+
+    def mail_prepare_message(self, subject: str = "", body: str = "", to: list[str] | None = None,
+                             cc: list[str] | None = None, reply_to_uid: str | None = None,
+                             attachments: list[str] | None = None) -> dict[str, Any]:
+        # Attach only managed files, never service state or credentials.
+        paths = [str(self.files.checked_path(item, ("uploads", "downloads"))) for item in attachments or []]
+        return super().mail_prepare_message(subject, body, to=to, cc=cc, reply_to_uid=reply_to_uid,
+                                            attachments=paths or None)
 
     def submit_assignment(self, file_path: str, course: str | None = None,
                           assignment: str | None = None, upload_url: str | None = None,

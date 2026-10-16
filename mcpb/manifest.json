@@ -67,6 +67,18 @@
       "description": "Inspect one bounded PDF, JPEG, or PNG attachment in memory without execution."
     },
     {
+      "name": "mail_search",
+      "description": "Search the whole inbox and sent folder on the server by words, sender, recipient, subject and dates."
+    },
+    {
+      "name": "mail_prepare_message",
+      "description": "Build a plain-text message or reply, optionally with attachments, and return its preview without sending."
+    },
+    {
+      "name": "mail_send_message",
+      "description": "Send a prepared message exactly as previewed, only after the user's approval."
+    },
+    {
       "name": "refresh_session",
       "description": "Force a new login with NINOVA_USERNAME and NINOVA_PASSWORD."
     },
