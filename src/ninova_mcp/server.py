@@ -358,10 +358,12 @@ class NinovaMcpApp:
         enabled = True if compact else compact_default_enabled()
         return maybe_compact(payload, compact=enabled)
 
-    def auth_status(self) -> dict[str, Any]:
-        credentials_present = bool(os.getenv("NINOVA_USERNAME") and os.getenv("NINOVA_PASSWORD"))
-        status: dict[str, Any] = {
-            "credentials_present": credentials_present,
+    def auth_status(self, debug: bool = False) -> dict[str, Any]:
+        """Report whether login works; internals such as paths and cookie names only with debug."""
+        configured = bool(os.getenv("NINOVA_USERNAME") and os.getenv("NINOVA_PASSWORD"))
+        status: dict[str, Any] = {"configured": configured}
+        details: dict[str, Any] = {
+            "credentials_present": configured,
             "state_dir": str(self.state_dir),
             "course_cache_ttl_seconds": self._course_cache_ttl_seconds,
         }
@@ -369,25 +371,30 @@ class NinovaMcpApp:
         update_notice = update_check.cached_notice(self.state_dir)
         if update_notice:
             status["update_notice"] = update_notice
-        if not credentials_present:
+        if not configured:
             status["authenticated"] = False
             status["message"] = "Set NINOVA_USERNAME and NINOVA_PASSWORD to enable login."
-            return status
+            return {**status, **details} if debug else status
 
         try:
-            session = self.client.ensure_logged_in(verify=True)
-            status["authenticated"] = True
-            status["session"] = session
+            details["session"] = self.client.ensure_logged_in(verify=True)
         except NinovaAuthError as exc:
             status["authenticated"] = False
             status["message"] = str(exc)
-            return status
+            return {**status, **details} if debug else status
+        status["authenticated"] = True
 
         try:
-            status["obs"] = self.obs.ensure_ready()
+            details["obs"] = self.obs.ensure_ready()
+            status["obs_ready"] = bool(details["obs"].get("jwt_present"))
         except Exception as exc:  # pragma: no cover - optional subsystem
-            status["obs"] = {"jwt_present": False, "error": str(exc)}
-        return status
+            details["obs"] = {"jwt_present": False, "error": str(exc)}
+            status["obs_ready"] = False
+        status["message"] = (
+            "Ninova and OBS login work." if status["obs_ready"]
+            else "Ninova login works; OBS is not reachable right now."
+        )
+        return {**status, **details} if debug else status
 
     @property
     def papers(self) -> PapersClient:
@@ -4299,8 +4306,17 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "auth_status",
         "title": "Authentication Status",
-        "description": "Check whether Ninova credentials are configured and whether a fresh session can be created.",
-        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+        "description": (
+            "Check whether ITU credentials are configured and a fresh Ninova and OBS login works. "
+            "Returns configured, authenticated, obs_ready, a short message and any update_notice. "
+            "debug=true adds diagnostics such as the session details and local state directory; "
+            "use it only when troubleshooting a login problem."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"debug": {"type": "boolean", "default": False}},
+            "additionalProperties": False,
+        },
     },
     {
         "name": "mail_status",
@@ -6963,7 +6979,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(_print_update_check())
 
     if args.check_auth:
-        status = NinovaMcpApp().auth_status()
+        # A terminal check for the user themselves keeps the full diagnostics.
+        status = NinovaMcpApp().auth_status(debug=True)
         print(pretty_json(status))
         raise SystemExit(0 if status.get("authenticated") else 1)
 

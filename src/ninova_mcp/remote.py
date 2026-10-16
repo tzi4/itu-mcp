@@ -231,7 +231,7 @@ def build_app() -> Starlette:
     async def healthz(_: Request) -> JSONResponse:
         # Lightweight: do not force a full Ninova login on every probe unless asked.
         if _env_flag("NINOVA_HEALTHZ_CHECK_AUTH", default=False):
-            status = app_logic.auth_status()
+            status = app_logic.auth_status(debug=True)
             return JSONResponse(
                 {
                     "ok": bool(status.get("authenticated")),

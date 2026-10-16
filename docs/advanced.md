@@ -200,7 +200,9 @@ own routes such as `/Sinif/<id>.<id>/Notlar`, `/MesajPanosu`, `/Yoklama`, and
 
 ## Exposed tools
 
-- `auth_status` — check whether credentials exist and a fresh Ninova session can be created.
+- `auth_status` — check whether credentials exist and a fresh Ninova and OBS login works.
+  The default answer is `configured`, `authenticated`, `obs_ready`, `message` and any
+  `update_notice`; `debug=true` adds session details and the local state directory.
 - `mail_status` — verify the read-only IMAPS connection and return inbox counts.
 - `mail_list_inbox` — list bounded message headers and UIDs without changing unread state.
 - `mail_list_sent` — list saved sent-message headers and UIDs from the server's sent folder.

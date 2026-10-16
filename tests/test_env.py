@@ -123,11 +123,20 @@ class EnvLoadingTests(unittest.TestCase):
                 ):
                     app = NinovaMcpApp()
                     status = app.auth_status()
+                    debug = app.auth_status(debug=True)
 
-                self.assertTrue(status["credentials_present"])
+                self.assertTrue(status["configured"])
                 self.assertTrue(status["authenticated"])
+                self.assertTrue(status["obs_ready"])
                 ensure_logged_in.assert_called()
-                self.assertTrue((status.get("obs") or {}).get("jwt_present"))
+                # By default only what a model needs; internals need debug=true.
+                self.assertLessEqual(set(status), {"configured", "authenticated", "obs_ready",
+                                                   "message", "update_notice"})
+                self.assertNotIn("file_user", repr(status))
+                self.assertTrue(debug["credentials_present"])
+                self.assertEqual(debug["session"]["username"], "file_user")
+                self.assertIn("state_dir", debug)
+                self.assertTrue((debug.get("obs") or {}).get("jwt_present"))
             finally:
                 os.chdir(self.original_cwd)
 
