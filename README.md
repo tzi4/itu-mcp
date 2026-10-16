@@ -27,8 +27,8 @@ adds three things that neither of them offers:
    your own university access, not only open-access papers.
 3. **A router that saves tokens and time.** Both earlier projects list each
    operation as its own tool; ITU MCP lets you switch whole groups off. Here, instead
-   of loading all 114 tool definitions into every conversation, the 82 read-only
-   operations are reached through one compact tool, so your assistant sees 33 tools.
+   of loading all 116 tool definitions into every conversation, the 84 read-only
+   operations are reached through one compact tool, so your assistant sees 34 tools.
    In my tests, this server's share of the first prompt dropped to less than half,
    the model picked the right operation more reliably, and several long, multi-step
    requests finished noticeably faster. The router is still evolving.
@@ -112,6 +112,7 @@ assistant, and it fetches the real data and answers.
 | "Transcript, advisor or internship?" | OBS profile, advisor, internship and transcript PDF |
 | "What's for lunch today? What's my card balance?" | ITU Portal menu, card and notification tools |
 | "When is my final? Are there open seats?" | Public OBS final exam and course schedule tools |
+| "Which MAT 201E section has the better-rated instructor?" | Public OBS sections with anonymous student ratings from notkutusu.com HocaMetre; off until you turn it on |
 | "When is the next shuttle? When does the pool close?" | Campus service tools |
 | "Does the library have this book?" | Public catalog search and copy status |
 | "Read my latest emails, tell me which ones matter, and summarize their PDF or image attachments." | Read-only ITU Mail tools and PDF/JPEG/PNG attachment inspection |

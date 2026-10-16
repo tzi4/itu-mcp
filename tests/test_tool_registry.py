@@ -76,6 +76,10 @@ EXPECTED_TOOL_GROUPS = {
         "archive_compare_terms",
         "plan_remaining_courses",
     ),
+    "hocametre": (
+        "hocametre_instructor",
+        "hocametre_course_sections",
+    ),
 }
 
 

@@ -129,6 +129,8 @@ class RankingTests(unittest.TestCase):
         "devamsızlık sınırına yakın mıyım": "obs_get_attendance",
         "Mezun olmak için kaç dersim kaldı": "obs_get_graduation_remaining",
         "BLG 336E dersini geçmişte kim verdi": "archive_who_taught",
+        "MAT 201E için hangi hocadan almalıyım": "hocametre_course_sections",
+        "Ayşe Tosun hocası nasıl": "hocametre_instructor",
         "3.00 ortalama için kaç almam gerekir": "calculate_target_gpa",
         "kampüs kartı bakiyesi": "obs_get_campus_card",
         "When are my exams": "get_personal_exam_calendar",

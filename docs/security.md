@@ -56,6 +56,9 @@ This project logs in to İTÜ Ninova, OBS, Portal and optionally İTÜ Mail with
   `help_prepare_ticket`, by its one-time draft ID and `confirm=true`, and presses the
   form's submit button once. Choosing units and categories only navigates the form.
   `NINOVA_HELP_TICKET_WRITES=0` turns it off.
+- `HocametreClient` is off unless `ITU_MCP_HOCAMETRE=1`. It sends GET requests only to
+  the exact host `mordor-api-production.notkutusu.com` over HTTPS, with its own cookie-free
+  session, and never rates or comments.
 - Public and library clients apply the same pre-request redirect validation, so an
   allowlisted page cannot bounce the client to localhost or an unrelated host.
 - User input is sent as query/form values, never concatenated into an arbitrary host,
