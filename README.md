@@ -20,18 +20,18 @@ adds three things that neither of them offers:
 
 1. **Write actions everywhere, including ChatGPT.** Ninova MCP is read-only, and ITU
    MCP offers a few write actions to local clients only. Here your assistant can
-   submit an assignment, renew or reserve a library book and save an OBS registration
+   submit an assignment, send an email, open a help ticket and save an OBS registration
    draft from remote clients such as ChatGPT on your phone, too. Every write action
    asks for your explicit confirmation first.
 2. **PaperBridge.** Your assistant can read papers behind publisher paywalls through
    your own university access, not only open-access papers.
 3. **A router that saves tokens and time.** Both earlier projects list each
-   operation as its own tool; ITU MCP lets you switch whole groups off. Here,
-   instead of loading more than 100 tool definitions into every conversation,
-   read-only operations are reached through one compact tool. In my tests, this
-   server's share of the first prompt dropped to less than half, the model picked
-   the right operation more reliably, and several long, multi-step requests
-   finished noticeably faster. The router is still evolving.
+   operation as its own tool; ITU MCP lets you switch whole groups off. Here, instead
+   of loading all 113 tool definitions into every conversation, the 82 read-only
+   operations are reached through one compact tool, so your assistant sees 33 tools.
+   In my tests, this server's share of the first prompt dropped to less than half,
+   the model picked the right operation more reliably, and several long, multi-step
+   requests finished noticeably faster. The router is still evolving.
 
    <details>
    <summary>Benchmark</summary>
@@ -56,14 +56,10 @@ adds three things that neither of them offers:
 
    </details>
 
-If you'd rather not use write actions, you can switch them off here, or use
-[ITU MCP](https://github.com/yatuk/itu-mcp) or
-[Ninova MCP](https://github.com/hikmedit/ninova-mcp).
-
 ### Why write actions?
 
-Uploading a finished assignment to Ninova, renewing a library book or updating your
-registration draft usually means signing in to another site and clicking through it.
+Uploading a finished assignment to Ninova or updating your registration draft
+usually means signing in to another site and clicking through it.
 Here you ask your assistant instead. It prepares the action, shows you exactly what
 will happen and acts only after you confirm, then reports the result so you can
 check it.
@@ -88,8 +84,9 @@ opens publishers such as ScienceDirect, is coming soon.
 
 I contributed to ITU MCP and still do. Some design choices here differ from the
 original project, such as offering write actions, so I continue them in this fork.
-If PaperBridge or the router don't interest you, or you want a strictly read-only
-server, have a look at [ITU MCP](https://github.com/yatuk/itu-mcp) and
+You can switch write actions off here. If PaperBridge or the router don't interest
+you, or you want a strictly read-only server, have a look at
+[ITU MCP](https://github.com/yatuk/itu-mcp) and
 [Ninova MCP](https://github.com/hikmedit/ninova-mcp) too. This fork keeps the
 original Git history, MIT license and attribution.
 
@@ -152,7 +149,7 @@ LLM API key.**
 | Springer Nature Link | Experimental article and book chapter retrieval under the same conditions |
 | Your own archive | Texts and PDF pages with a permission record, plus local search |
 
-Automatic full-text retrieval from Elsevier and Wiley is not implemented yet.
+Wiley is not supported yet, and Elsevier's ScienceDirect will follow with OpenAthens.
 Finding the metadata of an article does not mean reading the full article. For
 new sources that have an open-access link, use regular web access. PaperBridge
 does not start an institutional login or a new PDF download for such sources.
@@ -212,10 +209,8 @@ attachments, review assignments and explore papers in the same conversation.
 With remote HTTPS access configured, a compatible AI app on your phone can
 connect to that computer too.
 
-You still get the useful part: asking in plain language and letting your assistant
-bring the information together for you. An always-on
-server adds availability while your computer is off; both setups use the same
-university and research tools.
+Both setups use the same university and research tools; an always-on server only
+adds availability while your computer is off.
 
 ## Quick start
 
@@ -265,8 +260,8 @@ allowlist. The [advanced settings](docs/advanced.md) and the
 Each installation serves a single user. It does not separate different users or
 document archives that share the same server. This repository does not include
 credentials, private emails, PDFs, browser sessions or archive databases. Write
-actions are on by default, and each one requires explicit confirmation. ITU MCP
-has no official affiliation with ITU.
+actions are on by default; the [advanced settings](docs/advanced.md) show how to switch
+each one off. ITU MCP has no official affiliation with ITU.
 
 ## Development
 

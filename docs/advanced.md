@@ -230,11 +230,25 @@ own routes such as `/Sinif/<id>.<id>/Notlar`, `/MesajPanosu`, `/Yoklama`, and
 
 Many list/overview tools accept `compact=true` to shrink long fields (or set `NINOVA_COMPACT_DEFAULT=1`).
 
+### Switching write actions off
+
+Write actions are on by default and each one waits for your confirmation. Set any of
+these to `0` to turn one off:
+
+| Variable | Turns off |
+|---|---|
+| `NINOVA_ALLOW_UPLOADS` | Assignment uploads to Ninova |
+| `NINOVA_OBS_REGISTRATION_WRITES` | Saving the OBS registration draft |
+| `NINOVA_MAIL_SEND` | Sending mail |
+| `NINOVA_HELP_TICKET_WRITES` | Opening help tickets |
+| `NINOVA_REMOTE_ENABLE_WRITES` | Every write action over remote HTTP |
+
 ### Assignment upload safety
 
 - `submit_assignment` without `confirm=true` only returns a preview (no network POST of the file).
 - Set `NINOVA_ALLOW_UPLOADS=0` to disable uploads entirely.
-- Remote HTTP transport does **not** expose upload tools (local stdio only).
+- Over remote HTTP, uploads need remote write actions, and the file must be staged in the
+  managed `uploads` folder.
 - Always verify the target course/assignment/slot with the user before `confirm=true`.
 
 ### Mail reading
