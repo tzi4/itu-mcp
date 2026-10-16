@@ -13,6 +13,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 
+from . import update_check
 from .env import env_choice, env_switch, load_ninova_env
 from .mail_send import mail_send_enabled
 from .remote_security import (
@@ -157,7 +158,8 @@ def _build_fastmcp(app_logic: NinovaMcpApp, mount_path: str) -> FastMCP:
     port = int(os.getenv("PORT") or os.getenv("NINOVA_REMOTE_PORT") or "8000")
     mcp = FastMCP(
         SERVER_NAME,
-        instructions=server_instructions(SERVER_INSTRUCTIONS + REMOTE_FILE_INSTRUCTIONS),
+        instructions=server_instructions(SERVER_INSTRUCTIONS + REMOTE_FILE_INSTRUCTIONS)
+        + update_check.update_instructions(app_logic.state_dir),
         host=host,
         port=port,
         json_response=True,
@@ -275,6 +277,8 @@ def main() -> None:
 
     host = os.getenv("NINOVA_REMOTE_HOST", "127.0.0.1")
     port = int(os.getenv("PORT") or os.getenv("NINOVA_REMOTE_PORT") or "8000")
+    # Off the request path; a found update is logged and shown in auth_status.
+    update_check.start_background_check()
     uvicorn.run(
         "ninova_mcp.remote:app",
         host=host,

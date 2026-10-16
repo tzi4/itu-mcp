@@ -34,7 +34,9 @@ NINOVA_MAIL_PASSWORD=your_mail_password
 
 The server reads them from the process environment. If a `.env` file exists in the
 current working directory (or any parent), `NINOVA_*` and `ITU_MCP_*` variables are loaded from it
-without overriding variables already set in the environment.
+without overriding variables already set in the environment. Without one, the server falls back
+to the per-user file `~/.itu-mcp/.env` that `itu-mcp --setup` writes; `NINOVA_ENV_FILE` names a
+file explicitly.
 
 ### Optional overrides
 
@@ -62,7 +64,11 @@ export ITU_ARCHIVE_BASE_URL="https://itu-ders.com/data"  # course archive
 export ITU_ARCHIVE_CACHE_TTL_SECONDS="21600"         # archive regenerates daily
 export PREREQ_CROSSCHECK_BASE_URL="<community pipe-delimited course feed URL>"
 export PREREQ_CROSSCHECK_CACHE_TTL_SECONDS="21600"    # community prerequisite cross-check
+export ITU_MCP_UPDATE_CHECK="0"                      # turn off the daily update check
 ```
+
+The update check asks the GitHub API at most once a day, off the request path, how far the
+installed commit is behind this fork's `main`; see [Updates](installation.md#updates).
 
 The separate library patron account does not use the Ninova password:
 

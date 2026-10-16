@@ -23,6 +23,11 @@ def env_choice(name: str) -> bool | None:
     return value in _ON_VALUES
 
 
+def user_env_file() -> Path:
+    """The per-user private settings file written by ``itu-mcp --setup``."""
+    return Path.home() / ".itu-mcp" / ".env"
+
+
 def _find_env_file(env_file: str | Path | None = None) -> Path | None:
     explicit = env_file or os.getenv("NINOVA_ENV_FILE")
     if explicit:
@@ -38,7 +43,10 @@ def _find_env_file(env_file: str | Path | None = None) -> Path | None:
         candidate = directory / ".env"
         if candidate.is_file():
             return candidate
-    return None
+    # MCP clients start the server from an arbitrary directory, so fall back
+    # to the per-user file when no project .env is found.
+    candidate = user_env_file()
+    return candidate if candidate.is_file() else None
 
 
 def _split_key_value(line: str) -> tuple[str, str] | None:

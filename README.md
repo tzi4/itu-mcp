@@ -214,31 +214,36 @@ adds availability while your computer is off.
 
 ## Quick start
 
-ITU MCP requires Python **3.11 or later**. Install this fork from source:
+I've reduced installing to one command: it installs this fork from GitHub and sets
+it up. It installs [uv](https://docs.astral.sh/uv/) if you don't have it, and uv
+fetches a suitable Python when needed.
+
+**macOS and Linux:**
 
 ```bash
-git clone https://github.com/tzi4/itu-mcp-paperbridge.git
-cd itu-mcp-paperbridge
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install .
-itu-mcp --version
-itu-mcp --list-tools
+curl -LsSf https://raw.githubusercontent.com/tzi4/itu-mcp-paperbridge/main/scripts/install.sh | sh
 ```
 
-On Windows, create the virtual environment with `py -3.12 -m venv .venv`, then run
-`.\.venv\Scripts\python.exe -m pip install .` and
-`.\.venv\Scripts\itu-mcp.exe --list-tools`.
+**Windows (PowerShell):**
 
-In your MCP client, give the full path to the `itu-mcp` executable inside this
-virtual environment. For tools that need credentials, set `NINOVA_USERNAME` and
-`NINOVA_PASSWORD` in your own private client or service settings. Public tools do
-not need a university password.
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/tzi4/itu-mcp-paperbridge/main/scripts/install.ps1 | iex"
+```
+
+At the end it asks for your ITU login, with the password hidden, and keeps it in a
+private file on your computer (`~/.itu-mcp/.env`), never in a client config. Then
+it offers to add the server to Claude Desktop, Cursor or Codex if it finds them,
+and prints the `claude mcp add` command for Claude Code. Leave the login empty if
+you only want the public tools.
+
+For an always-on Linux server such as a Raspberry Pi, `scripts/install-server.sh`
+sets up a systemd service instead. To update, run the same command again. When
+there is an update, your assistant mentions it once; the server checks GitHub at
+most once a day, and `ITU_MCP_UPDATE_CHECK=0` turns that off.
 
 **The `itu-mcp` package on PyPI and the older upstream packages are not
-distributions of this fork.** Install the current fork from this repository. The
-[installation guide](docs/installation.md) includes configuration examples for
-Claude Desktop, Cursor and Codex.
+distributions of this fork.** The [installation guide](docs/installation.md) covers
+the server setup, manual installs from source and other clients.
 
 ## How it works
 

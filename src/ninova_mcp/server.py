@@ -76,6 +76,7 @@ from .tracking import (
     load_tracking_state, merge_course_snapshot, merge_updates, save_tracking_state, utc_now_iso,
 )
 from .tracking_coverage import coverage, enrollment_coverage, scope_coverage
+from . import update_check
 from .tool_router import (
     CALL_TOOL_NAME, DEFAULT_FIND_LIMIT, FIND_TOOL_DESCRIPTION, FIND_TOOL_NAME, FULL_PROFILE,
     MAX_FIND_LIMIT, ROUTER_INSTRUCTIONS, ROUTER_PROFILE, ToolRouter, call_tool_description,
@@ -318,6 +319,10 @@ class NinovaMcpApp:
             "state_dir": str(self.state_dir),
             "course_cache_ttl_seconds": self._course_cache_ttl_seconds,
         }
+        # Read from the daily cache only; the check itself runs in the background.
+        update_notice = update_check.cached_notice(self.state_dir)
+        if update_notice:
+            status["update_notice"] = update_notice
         if not credentials_present:
             status["authenticated"] = False
             status["message"] = "Set NINOVA_USERNAME and NINOVA_PASSWORD to enable login."
@@ -6306,7 +6311,11 @@ def build_stdio_server(app: NinovaMcpApp | None = None) -> Any:
     from mcp.server.fastmcp import FastMCP
 
     app = app or NinovaMcpApp()
-    mcp = FastMCP(SERVER_NAME, instructions=server_instructions(SERVER_INSTRUCTIONS))
+    mcp = FastMCP(
+        SERVER_NAME,
+        instructions=server_instructions(SERVER_INSTRUCTIONS)
+        + update_check.update_instructions(app.state_dir),
+    )
     apply_server_version(mcp)
     register_tools(mcp, app, LOCAL_TOOL_NAMES)
     register_prompts(mcp)
@@ -6327,7 +6336,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "-V",
         "--version",
         action="version",
-        version=f"{SERVER_NAME} {SERVER_VERSION}",
+        version=f"{SERVER_NAME} {update_check.build_label(SERVER_VERSION)}",
+    )
+    parser.add_argument(
+        "--setup",
+        action="store_true",
+        help="Save your ITU login in a private file and add this server to local MCP clients.",
+    )
+    parser.add_argument(
+        "--check-update",
+        action="store_true",
+        help="Check GitHub now for a newer build of this fork, print the result, and exit.",
     )
     parser.add_argument(
         "--check-auth",
@@ -6388,12 +6407,45 @@ def main(argv: list[str] | None = None) -> None:
             print(uri)
         return
 
+    if args.setup:
+        from .installer import run_setup
+
+        raise SystemExit(run_setup())
+
+    if args.check_update:
+        raise SystemExit(_print_update_check())
+
     if args.check_auth:
         status = NinovaMcpApp().auth_status()
         print(pretty_json(status))
         raise SystemExit(0 if status.get("authenticated") else 1)
 
-    build_stdio_server().run()
+    server = build_stdio_server()
+    update_check.start_background_check()
+    server.run()
+
+
+def _print_update_check() -> int:
+    """Run the update check in the foreground for ``--check-update``."""
+    load_ninova_env()
+    if not update_check.update_check_enabled():
+        print("The update check is turned off (ITU_MCP_UPDATE_CHECK=0).")
+        return 0
+    commit = update_check.installed_commit()
+    if not commit:
+        print("This install does not record the Git commit it came from, so it cannot be "
+              "compared with GitHub. Reinstall with the install command from "
+              f"{update_check.INSTALL_URL} to get update notices.")
+        return 0
+    record = update_check.check_now(force=True, commit=commit) or {}
+    notice = update_check.notice_from_record(record, commit)
+    if notice:
+        print(notice)
+    elif record.get("status") in {"identical", "ahead"}:
+        print(f"Up to date (commit {commit[:7]}).")
+    else:
+        print(f"Could not check for updates: {record.get('error') or record.get('status')}.")
+    return 0
 
 
 if __name__ == "__main__":
