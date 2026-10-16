@@ -72,11 +72,15 @@
     },
     {
       "name": "mail_prepare_message",
-      "description": "Build a plain-text message or reply, optionally with attachments, and return its preview without sending."
+      "description": "Build a plain-text message, reply or forward, optionally with attachments, and return its preview without sending."
     },
     {
       "name": "mail_send_message",
       "description": "Send a prepared message exactly as previewed, only after the user's approval."
+    },
+    {
+      "name": "mail_save_draft",
+      "description": "Save a prepared message to the ITU Mail Drafts folder without sending it, only after the user's approval."
     },
     {
       "name": "help_ticket_options",

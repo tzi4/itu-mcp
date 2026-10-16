@@ -28,8 +28,9 @@ NINOVA_PASSWORD=your_password
 # Optional; mail tools fall back to the shared credentials above.
 NINOVA_MAIL_USERNAME=your_email
 NINOVA_MAIL_PASSWORD=your_mail_password
-# Optional existing sent folder name if automatic discovery is ambiguous.
+# Optional existing sent and drafts folder names if automatic discovery is ambiguous.
 # NINOVA_MAIL_SENT_MAILBOX=Sent Items
+# NINOVA_MAIL_DRAFTS_MAILBOX=Drafts
 ```
 
 The server reads them from the process environment. If a `.env` file exists in the
@@ -198,8 +199,9 @@ own routes such as `/Sinif/<id>.<id>/Notlar`, `/MesajPanosu`, `/Yoklama`, and
 - `mail_get_message` — read one bounded text body and attachment metadata with `BODY.PEEK`. Use `mailbox="SENT"` for a UID from `mail_list_sent`; the default is `INBOX`.
 - `mail_get_attachment` — inspect one size-limited PDF, JPEG, or PNG attachment in memory, using the same `mailbox` as the message read.
 - `mail_search` — search the whole inbox and sent folder on the server by words, sender, recipient, subject and dates; `in_body=true` also searches bodies.
-- `mail_prepare_message` — build a plain-text message, optionally a reply or with attachments, and return its preview and a one-time `draft_id`. Nothing is sent.
+- `mail_prepare_message` — build a plain-text message, optionally a reply, a forward (`forward_uid`) or with attachments, and return its preview and a one-time `draft_id`. Nothing is sent.
 - `mail_send_message` — send that draft exactly as previewed, with `confirm=true`, after you approve it.
+- `mail_save_draft` — save that draft to your İTÜ Mail Drafts folder instead, with `confirm=true`, to finish it in webmail. Nothing is sent.
 - `refresh_session` — force a new login with the configured credentials.
 - `get_dashboard` — read `/Kampus1` and summarize sections, recent items, and courses.
 - `list_courses` — return the discovered courses from the dashboard (TTL-cached; `refresh` bypasses cache).
@@ -240,6 +242,7 @@ these to `0` to turn one off:
 | `NINOVA_ALLOW_UPLOADS` | Assignment uploads to Ninova |
 | `NINOVA_OBS_REGISTRATION_WRITES` | Saving the OBS registration draft |
 | `NINOVA_MAIL_SEND` | Sending mail |
+| `NINOVA_MAIL_SAVE_DRAFTS` | Saving prepared mail to the Drafts folder |
 | `NINOVA_HELP_TICKET_WRITES` | Opening help tickets |
 | `NINOVA_REMOTE_ENABLE_WRITES` | Every write action over remote HTTP |
 
@@ -288,6 +291,41 @@ Because the content is not passed again, what is sent is what you approved.
 - `NINOVA_MAIL_SAVE_SENT=0` skips the sent-folder copy; `NINOVA_MAIL_SMTP_HOST` and
   `NINOVA_MAIL_SMTP_PORT` override the server.
 - `NINOVA_MAIL_SEND=0` turns sending off. Over remote HTTP, sending also needs the
+  remote mail tools and remote write actions.
+
+### Forwarding mail
+
+To forward, `mail_prepare_message` takes `forward_uid` and `forward_mailbox` (`INBOX` or
+`SENT`) from a listing, plus the recipients. It reads the whole original with `BODY.PEEK`,
+so its unread state does not change, and refuses messages over 28 MiB. The body you give
+becomes a note above a "Forwarded message" block with the original's From, Date,
+Subject, To and Cc lines and its text (HTML is converted to text, at most 50,000
+characters). The subject gets `Fwd:` unless it already starts with `Fwd:`, `Fw:` or
+`İLT:`. The original's attachments are attached again, a nested message as
+`message/rfc822`; with your own files they must stay within 20 MiB, and
+`forward_attachments=false` leaves them out. The preview lists the forwarded message and
+every attachment with its size, and the same recipient domains, daily limit and
+approval step apply.
+
+### Saving to Drafts
+
+`mail_save_draft` takes a `draft_id` from `mail_prepare_message` and `confirm=true` and
+appends the stored message to your Drafts folder with the `\Draft` flag, so you can
+finish and send it in webmail. It finds the folder by its IMAP `\Drafts` role or a
+known name such as `Drafts` or `Taslaklar` and never creates one; set
+`NINOVA_MAIL_DRAFTS_MAILBOX` if discovery is ambiguous. The result names the folder and,
+when the server reports it, the new message's UID.
+
+- Saving does not use up the `draft_id`: you can still send it with `mail_send_message`
+  until it expires, but a second save is refused and sending does not remove the Drafts
+  copy.
+- The recipient domain rule applies to drafts too. A draft is one click from being
+  sent in webmail or by a synced mail app, so a hidden request should not be able to
+  place an outside address there either.
+- Saved drafts count toward their own daily limit, the same
+  `NINOVA_MAIL_SEND_DAILY_LIMIT` number.
+- `NINOVA_MAIL_SAVE_DRAFTS=0` turns it off. With `NINOVA_MAIL_SEND=0` and drafts on,
+  the server prepares and saves drafts but never sends. Over remote HTTP it needs the
   remote mail tools and remote write actions.
 
 ## Notes

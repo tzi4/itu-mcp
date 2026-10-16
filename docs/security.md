@@ -47,7 +47,11 @@ This project logs in to İTÜ Ninova, OBS, Portal and optionally İTÜ Mail with
 - `ItuMailSender` sends only a message previewed by `mail_prepare_message`, by its one-time
   draft ID and `confirm=true`, over verified STARTTLS. Recipients are limited to `itu.edu.tr`
   by default, attachments to allowlisted types whose content matches the extension, and
-  sending to a daily limit. `NINOVA_MAIL_SEND=0` turns it off.
+  sending to a daily limit. `NINOVA_MAIL_SEND=0` turns it off. A forward reads the original
+  with `BODY.PEEK`, bounded to 28 MiB, and shows its sender, date, subject and every
+  re-attached file in the preview. `mail_save_draft` appends the same previewed message to
+  the existing Drafts folder after `confirm=true`, never creates folders, and keeps the
+  recipient domain rule. `NINOVA_MAIL_SAVE_DRAFTS=0` turns it off.
 - `HelpTicketWriter` opens a help desk ticket only from a draft previewed by
   `help_prepare_ticket`, by its one-time draft ID and `confirm=true`, and presses the
   form's submit button once. Choosing units and categories only navigates the form.

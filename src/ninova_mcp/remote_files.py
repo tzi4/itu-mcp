@@ -314,11 +314,16 @@ class RemoteNinovaMcpApp(NinovaMcpApp):
 
     def mail_prepare_message(self, subject: str = "", body: str = "", to: list[str] | None = None,
                              cc: list[str] | None = None, reply_to_uid: str | None = None,
-                             attachments: list[str] | None = None) -> dict[str, Any]:
-        # Attach only managed files, never service state or credentials.
+                             attachments: list[str] | None = None, forward_uid: str | None = None,
+                             forward_mailbox: str = "INBOX",
+                             forward_attachments: bool = True) -> dict[str, Any]:
+        # Attach only managed files, never service state or credentials. Forwarded
+        # attachments come from the mailbox, not from the server's disk.
         paths = [str(self.files.checked_path(item, ("uploads", "downloads"))) for item in attachments or []]
         return super().mail_prepare_message(subject, body, to=to, cc=cc, reply_to_uid=reply_to_uid,
-                                            attachments=paths or None)
+                                            attachments=paths or None, forward_uid=forward_uid,
+                                            forward_mailbox=forward_mailbox,
+                                            forward_attachments=forward_attachments)
 
     def help_prepare_ticket(self, unit_id: int, category_id: int, title: str, description: str,
                             subcategory_id: int | None = None, extra_fields: dict[str, Any] | None = None,
