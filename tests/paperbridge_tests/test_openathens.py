@@ -72,9 +72,12 @@ class FakePage:
     def locator(self, selector):
         return Locator(self, selector)
 
-    def evaluate(self, script):
+    def evaluate(self, script, arg=None):
         if "password" in script:
             return self.scenario.get("form", [LOGIN, "post"])
+        if "fetch(" in script:
+            # The in-page fetch fails like a blocked cross-origin redirect; the context request follows.
+            return {"failed": True}
         return self.scenario.get("pdf", PDF_URL)
 
     def close(self):

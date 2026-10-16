@@ -74,7 +74,34 @@ provider record. No permission file is supplied by default, and MCP tools cannot
 create these records. Permission is rechecked for text and page reads.
 
 IEEE and Springer Nature Link adapters are experimental. Elsevier and Wiley
-retrieval are unimplemented. Reported open-access locations return public links
+retrieval are unimplemented.
+
+## ITU OpenAthens
+
+ITU reaches most subscribed publishers through OpenAthens, which signs in with the
+library account: your student or staff number and the library catalog password, not
+the central ITU password. Set them privately to turn the OpenAthens adapter on:
+
+```dotenv
+PAPERBRIDGE_OPENATHENS_USERNAME=student-or-staff-number
+PAPERBRIDGE_OPENATHENS_PASSWORD=library-account-password
+```
+
+Without these, `NINOVA_LIBRARY_ID` and `NINOVA_LIBRARY_PIN` are used, since the library
+catalog login is the same account. The adapter opens the DOI through
+`go.openathens.net/redirector/itu.edu.tr`, fills the form only on ITU's
+`login.openathens.net` page, and reads the PDF named by the article page. Permission
+records use the provider name `openathens`.
+
+| Publisher | Observed in my tests |
+| --- | --- |
+| ASME Digital Collection | Works; ITU routes it through the OpenAthens proxy |
+| Cambridge Core | Works from a home connection; a VPN address gets a verification page |
+| ACS, Oxford Academic, Taylor & Francis, SAGE, ACM | Tried, but often stop at a verification page or refuse the PDF |
+
+A publisher's verification page (for example Cloudflare's "Just a moment...") ends the
+attempt with `publisher_interaction_required`. PaperBridge never solves or bypasses it.
+ScienceDirect, Wiley, AIAA, ASCE, APS, RSC, Emerald and AIP showed that page every time. Reported open-access locations return public links
 instead of starting institutional acquisition. Missing open-access metadata is
 not proof of a paywall. Existing authorized archive entries remain readable.
 

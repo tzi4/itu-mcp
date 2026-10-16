@@ -78,8 +78,8 @@ students we can read many of them through the university's subscriptions by sign
 in with our ITU account. PaperBridge brings that access to your assistant: it
 retrieves a paper you are allowed to read through your own institutional access, so
 your assistant can read and explain its full text, equations and figures. It
-currently works with IEEE Xplore and Springer Nature Link; OpenAthens access, which
-opens publishers such as ScienceDirect, is coming soon.
+works with IEEE Xplore and Springer Nature Link, and through ITU's OpenAthens login
+with ASME and Cambridge Core too.
 
 ### Why a separate fork?
 
@@ -149,9 +149,12 @@ LLM API key.**
 | Unpaywall | Open-access link discovery once you configure your own contact email |
 | IEEE Xplore | Experimental full-text retrieval through a configured browser, with your own institutional access and a permission record |
 | Springer Nature Link | Experimental article and book chapter retrieval under the same conditions |
+| ITU OpenAthens | ASME Digital Collection and Cambridge Core, signing in with your library account; ACS, Oxford Academic, Taylor & Francis, SAGE and ACM are tried but often stop at a verification page |
 | Your own archive | Texts and PDF pages with a permission record, plus local search |
 
-Wiley is not supported yet, and Elsevier's ScienceDirect will follow with OpenAthens.
+ScienceDirect, Wiley and several other publishers show automated browsers a
+verification page, so PaperBridge cannot read them yet; it reports that instead of
+trying to get around the check.
 Finding the metadata of an article does not mean reading the full article. For
 new sources that have an open-access link, use regular web access. PaperBridge
 does not start an institutional login or a new PDF download for such sources.
@@ -255,7 +258,7 @@ graph LR
     server --> itu["Ninova / OBS / Portal / campus / mail"]
     server --> pb["PaperBridge"]
     pb --> metadata["Crossref / Unpaywall"]
-    pb --> publishers["IEEE / Springer (configured access)"]
+    pb --> publishers["IEEE / Springer / OpenAthens publishers (configured access)"]
     pb --> archive["Your permitted document archive"]
 ```
 
