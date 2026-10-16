@@ -70,7 +70,8 @@ check it.
 
 The same goes for email: your assistant can search your whole ITU mailbox, draft a
 message or a reply, for example to an instructor, with attachments, and send it after you
-approve the preview. Opening an ITU help ticket is coming soon.
+approve the preview. It can also open an ITU help ticket for you: it finds the right unit
+and category, fills in the form and submits it once you approve.
 
 ### Why PaperBridge?
 
@@ -119,6 +120,7 @@ assistant, and it fetches the real data and answers.
 | "Read the last email I sent and remind me what I asked for." | Read-only sent-mail listing and message reading |
 | "Find the emails from my Linear Algebra course two years ago." | Server-side search across the inbox and sent folder |
 | "Reply to my instructor's last email, attach my report and show me before sending." | A previewed draft, sent only after you approve it |
+| "My VPN won't connect. Open a help ticket with this screenshot." | Help desk unit, category and form fields, submitted after you approve |
 | "Scan Ninova for new assignments. Download any new files, start working through the questions, and send me a draft to review." | Assignment discovery and file download; your AI assistant prepares the draft |
 | "Use PaperBridge to read this IEEE or Springer paper through my university access and explain its equations and figures." | DOI lookup, configured institutional retrieval and PDF text/page tools |
 | "Download this assignment, prepare a solution, and upload the reviewed file to Ninova after I confirm." | Assignment files and submission tools; uploads must be enabled and require `confirm=true` |

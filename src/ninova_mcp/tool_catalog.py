@@ -49,9 +49,10 @@ DOMAINS: dict[str, tuple[str, tuple[str, ...]]] = {
          "obs_validate_registration_plan"),
     ),
     "portal": (
-        "Portal (login): campus card, cafeteria menu, notifications, help tickets, cloud and mail quota",
+        "Portal (login): campus card, cafeteria menu, notifications, reading and opening help tickets, cloud and mail quota",
         ("obs_get_campus_card", "obs_get_notifications", "obs_get_help_tickets",
-         "get_help_ticket", "obs_get_cloud_quota", "get_cafeteria_menu"),
+         "get_help_ticket", "help_ticket_options", "help_prepare_ticket", "help_submit_ticket",
+         "obs_get_cloud_quota", "get_cafeteria_menu"),
     ),
     "planning": (
         "Planning: GPA, target GPA, relative grade, conflicts, degree plan, eligibility",
@@ -155,6 +156,9 @@ KEYWORDS: dict[str, str] = {
     "obs_get_notifications": "bildirimler portal bildirimi",
     "obs_get_help_tickets": "destek talepleri yardım bileti çağrı",
     "get_help_ticket": "destek talebi ayrıntı",
+    "help_ticket_options": "yardım bileti aç birim kategori nereye yazmalıyım",
+    "help_prepare_ticket": "yardım bileti oluştur destek talebi aç şikayet bildir",
+    "help_submit_ticket": "bileti gönder destek talebini onayla",
     "obs_get_cloud_quota": "bulut kotası depolama mail kotası",
     "get_cafeteria_menu": "yemekhane menü yemek öğle akşam bugün ne var",
     "obs_calculate_gpa": "not ortalamam gno ano ortalama gpa hesapla",

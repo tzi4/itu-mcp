@@ -333,6 +333,19 @@ Because the content is not passed again, what is sent is what you approved.
   help desk uses month/day/year for slash-separated history dates. Parsed timestamps use the source's local time without
   assuming a timezone. Detail reads share the configured course-cache TTL
   (60 seconds by default).
+- `help_ticket_options(unit_id, category_id, subcategory_id)` — find where a new ticket
+  belongs on yardim.itu.edu.tr: the units, a unit's categories, a category's
+  subcategories, and the extra fields a subcategory asks for. It only navigates the form.
+- `help_prepare_ticket(...)` and `help_submit_ticket(draft_id, confirm)` — open a ticket in
+  two steps, like sending mail. The first checks the choices and extra fields against the
+  live form, reads any attachments and returns the exact preview with a one-time
+  `draft_id`; the second fills a fresh form and submits it once with `confirm=true`, then
+  returns the new ticket number. If the help desk gives none, the result is `uncertain`
+  and the ticket list should be checked before trying again. Titles and descriptions may
+  not contain `<` or `>`, and each file field takes less than 10 MiB. Attachments use the
+  same allowlist as mail; over remote HTTP they must be in the managed `uploads` or
+  `downloads` folders. `NINOVA_HELP_TICKET_WRITES=0` turns ticket opening off; over
+  remote HTTP it also needs remote write actions.
 - `obs_get_cloud_quota`
 - `obs_calculate_gpa(projected_grades)` — projected values override existing grades
 - `calculate_target_gpa` — aggregate target-GPA estimate without reading OBS

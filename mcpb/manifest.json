@@ -79,6 +79,18 @@
       "description": "Send a prepared message exactly as previewed, only after the user's approval."
     },
     {
+      "name": "help_ticket_options",
+      "description": "List help desk units, a unit's categories, or a category's subcategories and extra fields."
+    },
+    {
+      "name": "help_prepare_ticket",
+      "description": "Check a help ticket against the live form and return its preview without submitting."
+    },
+    {
+      "name": "help_submit_ticket",
+      "description": "Open a prepared help ticket exactly as previewed, only after the user's approval."
+    },
+    {
       "name": "refresh_session",
       "description": "Force a new login with NINOVA_USERNAME and NINOVA_PASSWORD."
     },

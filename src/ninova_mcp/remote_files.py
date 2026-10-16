@@ -166,6 +166,7 @@ class RemoteNinovaMcpApp(NinovaMcpApp):
         "library_reserve_item": " First preview with confirm=false and obtain explicit user approval of this exact reservation before confirm=true.",
         "snapshot_page": " Remote: snapshots are stored only in the managed HDD snapshots folder.",
         "diff_snapshot": " Remote: snapshot_path must refer to a snapshot in the managed HDD snapshots folder.",
+        "help_prepare_ticket": " Remote: attachments and file fields must be lists of files on the server's managed disk, in uploads or downloads.",
         "mail_prepare_message": " Remote: attachments must be files on the server's managed disk, in uploads (staged via SSH/SFTP) or downloads (for example a file saved by download_resource).",
     }
 
@@ -318,6 +319,21 @@ class RemoteNinovaMcpApp(NinovaMcpApp):
         paths = [str(self.files.checked_path(item, ("uploads", "downloads"))) for item in attachments or []]
         return super().mail_prepare_message(subject, body, to=to, cc=cc, reply_to_uid=reply_to_uid,
                                             attachments=paths or None)
+
+    def help_prepare_ticket(self, unit_id: int, category_id: int, title: str, description: str,
+                            subcategory_id: int | None = None, extra_fields: dict[str, Any] | None = None,
+                            attachments: list[str] | None = None) -> dict[str, Any]:
+        def managed(item: Any) -> str:
+            return str(self.files.checked_path(str(item), ("uploads", "downloads")))
+
+        # File-typed extra fields hold paths too; text values are left as they are.
+        fields = dict(extra_fields or {})
+        for key, value in fields.items():
+            if isinstance(value, list):
+                fields[key] = [managed(item) for item in value]
+        return super().help_prepare_ticket(unit_id, category_id, title, description,
+                                           subcategory_id=subcategory_id, extra_fields=fields or None,
+                                           attachments=[managed(item) for item in attachments or []] or None)
 
     def submit_assignment(self, file_path: str, course: str | None = None,
                           assignment: str | None = None, upload_url: str | None = None,

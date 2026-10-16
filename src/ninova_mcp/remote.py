@@ -23,6 +23,7 @@ from .remote_security import (
 )
 from .server import (
     LOCAL_TOOL_NAMES,
+    HELP_TICKET_WRITE_TOOL_NAMES,
     MAIL_SEND_TOOL_NAMES,
     MAIL_TOOL_NAMES,
     OBS_REGISTRATION_WRITE_TOOL_NAMES,
@@ -32,6 +33,7 @@ from .server import (
     SERVER_VERSION,
     NinovaMcpApp,
     apply_server_version,
+    help_ticket_writes_enabled,
     obs_registration_writes_enabled,
     register_prompts,
     register_resources,
@@ -80,6 +82,8 @@ def _selected_remote_tool_names() -> list[str]:
     mail_enabled = env_switch("NINOVA_REMOTE_ENABLE_MAIL")
     if mail_enabled and writes_enabled and mail_send_enabled():
         eligible.update(MAIL_SEND_TOOL_NAMES)
+    if writes_enabled and help_ticket_writes_enabled():
+        eligible.update(HELP_TICKET_WRITE_TOOL_NAMES)
     available = [
         name
         for name in LOCAL_TOOL_NAMES
