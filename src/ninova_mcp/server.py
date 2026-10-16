@@ -971,6 +971,92 @@ class NinovaMcpApp:
             "deadlines": deadline_items,
         }
 
+    def export_calendar(
+        self,
+        include: list[str] | None = None,
+        semester: str | None = None,
+        days: int = 120,
+        output_path: str | None = None,
+    ) -> dict[str, Any]:
+        """Write classes, final exams and deadlines to an iCalendar (.ics) file."""
+        from .calendar_export import (
+            academic_events, build_calendar, class_events, deadline_events, exam_events,
+        )
+
+        parts = set(include or ["classes", "exams", "deadlines"])
+        unknown = parts - {"classes", "exams", "deadlines", "academic"}
+        if unknown:
+            raise ValueError("include may contain classes, exams, deadlines and academic only.")
+        events: list[Any] = []
+        warnings: list[str] = []
+        counts: dict[str, int] = {}
+
+        def add(name: str, result: tuple[list[Any], list[str]]) -> None:
+            counts[name] = len(result[0])
+            events.extend(result[0])
+            warnings.extend(result[1])
+
+        registered: list[dict[str, Any]] = []
+        semester_id = None
+        if parts & {"classes", "exams"}:
+            try:
+                resolved = self.obs.resolve_semester(semester)
+                semester_id = resolved["akademikDonemId"]
+                registered = self.obs.get_schedule(semester_id).get("kayitSinifResultList") or []
+            except Exception as exc:  # One unavailable source must not block the others.
+                warnings.append(f"OBS schedule unavailable: {exc}")
+        if "classes" in parts:
+            add("classes", class_events(registered))
+        if "exams" in parts and semester_id is not None:
+            try:
+                personal = self.obs.get_final_calendar(semester_id).get("finalBilgiList") or []
+                if personal:
+                    add("exams", exam_events(personal))
+                else:
+                    wanted = {str(item.get("crn")) for item in registered if item.get("crn")} | {
+                        f"{item.get('bransKodu')} {item.get('dersKodu')}" for item in registered}
+                    rows: list[dict[str, Any]] = []
+                    for branch in sorted({str(item.get("bransKodu")) for item in registered if item.get("bransKodu")}):
+                        rows += self.itu_public.get_final_exam_schedule(branch).get("exams") or []
+                    add("exams", exam_events(rows, wanted=wanted))
+                if not counts.get("exams"):
+                    warnings.append("No final exam dates are published for your courses yet.")
+            except Exception as exc:
+                warnings.append(f"Final exam calendar unavailable: {exc}")
+        if "deadlines" in parts:
+            try:
+                upcoming = self.get_upcoming_deadlines(days=max(1, min(int(days), 180)))
+                add("deadlines", deadline_events(upcoming.get("deadlines") or []))
+            except Exception as exc:
+                warnings.append(f"Ninova deadlines unavailable: {exc}")
+        if "academic" in parts:
+            try:
+                add("academic", academic_events(self.get_academic_calendar().get("events") or []))
+            except Exception as exc:
+                warnings.append(f"Academic calendar unavailable: {exc}")
+
+        content = build_calendar(events, name="ITU")
+        saved = self._save_calendar(content.encode("utf-8"), output_path)
+        return {
+            **saved,
+            "event_counts": counts,
+            "warnings": warnings,
+            # Small enough for the assistant to hand the file to the user directly.
+            "ics": content if len(content) <= 60_000 else None,
+            "next_step": "Give the user the .ics file (or its text) to import into their calendar app. "
+                         "Weekly classes repeat until the end of the term.",
+        }
+
+    def _save_calendar(self, data: bytes, output_path: str | None) -> dict[str, Any]:
+        target = (Path(output_path).expanduser() if output_path
+                  else self.state_dir / "calendar" / "itu-calendar.ics")
+        if target.suffix.lower() != ".ics":
+            raise ValueError("output_path must end with .ics.")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        target.chmod(0o600)
+        return {"path": str(target), "size_bytes": len(data)}
+
     def get_course_class_files(
         self,
         course: str,
@@ -5679,6 +5765,32 @@ TOOLS: list[dict[str, Any]] = [
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
+        "name": "export_calendar",
+        "title": "Export Calendar (.ics)",
+        "description": (
+            "Write the user's weekly classes (repeating until the end of the term), final exams and "
+            "Ninova assignment deadlines, and optionally academic calendar dates, to one iCalendar "
+            "(.ics) file that phone and computer calendar apps import. Returns the file path, event "
+            "counts, warnings for sources that were unavailable or not yet published, and the .ics "
+            "text when it is small enough to hand to the user."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "include": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": ["classes", "exams", "deadlines", "academic"]},
+                    "description": "What to export; default classes, exams and deadlines.",
+                },
+                "semester": {"type": "string", "description": "OBS semester; default the current one."},
+                "days": {"type": "integer", "minimum": 1, "maximum": 180, "default": 120,
+                         "description": "How far ahead to include assignment deadlines."},
+                "output_path": {"type": "string", "description": "Local .ics path; default in the state directory."},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "get_academic_calendar",
         "title": "Academic Calendar",
         "description": "Read the İTÜ academic calendar — semester dates, exams, holidays, registration periods (public, no login).",
@@ -6323,6 +6435,8 @@ REMOTE_EXCLUDED_TOOLS = {
     # download_resource/snapshot_page above — belongs in the same exclusion
     # for the same reason.
     "obs_download_transcript",
+    # Writes a file; remote HTTP uses the managed downloads folder instead.
+    "export_calendar",
     # Remote sending also needs remote mail and remote writes; see remote.py.
     "mail_prepare_message",
     "mail_send_message",
@@ -6344,6 +6458,7 @@ STATEFUL_TOOL_NAMES = {
     "download_resource",
     "snapshot_page",
     "obs_download_transcript",
+    "export_calendar",
     # These three change data in an external service and are remote-excluded.
     "submit_assignment",
     "library_renew_loan",

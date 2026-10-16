@@ -96,6 +96,10 @@
       "description": "Open a prepared help ticket exactly as previewed, only after the user's approval."
     },
     {
+      "name": "export_calendar",
+      "description": "Write weekly classes, final exams and assignment deadlines to one .ics calendar file."
+    },
+    {
       "name": "refresh_session",
       "description": "Force a new login with NINOVA_USERNAME and NINOVA_PASSWORD."
     },

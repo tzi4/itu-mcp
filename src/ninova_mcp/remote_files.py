@@ -22,7 +22,7 @@ from .tracking import utc_now_iso
 MIB = 1024 * 1024
 REMOTE_FILE_TOOLS = {
     "download_resource", "read_resource_text", "read_page", "snapshot_page",
-    "diff_snapshot", "obs_download_transcript", "get_assignment_upload_slots",
+    "diff_snapshot", "obs_download_transcript", "get_assignment_upload_slots", "export_calendar",
 }
 REMOTE_WRITE_TOOLS = {"submit_assignment", "library_renew_loan", "library_reserve_item"}
 REMOTE_FILE_INSTRUCTIONS = (
@@ -166,6 +166,7 @@ class RemoteNinovaMcpApp(NinovaMcpApp):
         "library_reserve_item": " First preview with confirm=false and obtain explicit user approval of this exact reservation before confirm=true.",
         "snapshot_page": " Remote: snapshots are stored only in the managed HDD snapshots folder.",
         "diff_snapshot": " Remote: snapshot_path must refer to a snapshot in the managed HDD snapshots folder.",
+        "export_calendar": " Remote: the file is saved in the managed HDD downloads folder (calendar/); output_path is ignored. Give the user the returned ics text.",
         "help_prepare_ticket": " Remote: attachments and file fields must be lists of files on the server's managed disk, in uploads or downloads.",
         "mail_prepare_message": " Remote: attachments must be files on the server's managed disk, in uploads (staged via SSH/SFTP) or downloads (for example a file saved by download_resource).",
     }
@@ -339,6 +340,11 @@ class RemoteNinovaMcpApp(NinovaMcpApp):
         return super().help_prepare_ticket(unit_id, category_id, title, description,
                                            subcategory_id=subcategory_id, extra_fields=fields or None,
                                            attachments=[managed(item) for item in attachments or []] or None)
+
+    def _save_calendar(self, data: bytes, output_path: str | None) -> dict[str, Any]:
+        # Remote calendars go to the managed downloads folder, never a caller-chosen path.
+        with self._file_operations:
+            return self.files.save([data], "itu-calendar.ics", directory="calendar")
 
     def submit_assignment(self, file_path: str, course: str | None = None,
                           assignment: str | None = None, upload_url: str | None = None,

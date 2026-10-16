@@ -58,7 +58,8 @@ DOMAINS: dict[str, tuple[str, tuple[str, ...]]] = {
         "Planning: GPA, target GPA, relative grade, conflicts, degree plan, eligibility",
         ("obs_calculate_gpa", "calculate_target_gpa", "estimate_relative_grade",
          "check_course_conflicts", "list_degree_faculties", "list_degree_programs",
-         "build_degree_plan", "explain_course_eligibility", "plan_remaining_courses"),
+         "build_degree_plan", "explain_course_eligibility", "plan_remaining_courses",
+         "export_calendar"),
     ),
     "public": (
         "Public OBS catalog: course search, section schedules, prerequisites, exams, academic calendar, rooms",
@@ -178,6 +179,7 @@ KEYWORDS: dict[str, str] = {
     "plan_remaining_courses": "kalan dersleri planla gelecek dönem ne almalıyım",
     "obs_search_courses": "ders ara ders kodu ders adı katalog",
     "obs_get_course_prerequisites": "ön şart önkoşul",
+    "export_calendar": "takvim dışa aktar ics ders programını takvime ekle telefon takvimi google calendar sınav ödev",
     "get_academic_calendar": "akademik takvim final haftası tatil dönem başlangıcı ekle bırak",
     "get_public_course_schedule": "ders şubeleri crn gün saat derslik hoca bu dönem açılan",
     "get_public_course_prerequisites": "ön şart önkoşul",

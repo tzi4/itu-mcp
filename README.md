@@ -117,6 +117,7 @@ assistant, and it fetches the real data and answers.
 | "Does the library have this book?" | Public catalog search and copy status |
 | "Read my latest emails, tell me which ones matter, and summarize their PDF or image attachments." | Read-only ITU Mail tools and PDF/JPEG/PNG attachment inspection |
 | "Read the last email I sent and remind me what I asked for." | Read-only sent-mail listing and message reading |
+| "Put my classes, finals and assignment deadlines in my phone's calendar." | One .ics file with weekly classes, exams and deadlines |
 | "Find the emails from my Linear Algebra course two years ago." | Server-side search across the inbox and sent folder |
 | "Reply to my instructor's last email, attach my report and show me before sending." | A previewed draft, sent only after you approve it |
 | "My VPN won't connect. Open a help ticket with this screenshot." | Help desk unit, category and form fields, submitted after you approve |

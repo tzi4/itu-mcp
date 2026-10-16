@@ -407,6 +407,12 @@ when the server reports it, the new message's UID.
   `downloads` folders. `NINOVA_HELP_TICKET_WRITES=0` turns ticket opening off; over
   remote HTTP it also needs remote write actions.
 - `obs_get_cloud_quota`
+- `export_calendar(include, semester, days, output_path)` — one iCalendar (.ics) file with the
+  weekly classes (repeating until the end of the term), final exams once they are published
+  (personal OBS list, otherwise the public schedule matched by CRN), Ninova assignment
+  deadlines with a reminder the day before, and optionally academic calendar dates. Locally it
+  writes `calendar/itu-calendar.ics` in the state directory; over remote HTTP it uses the managed
+  downloads folder. The result also carries the `.ics` text so the assistant can hand it over.
 - `obs_calculate_gpa(projected_grades)` — projected values override existing grades
 - `calculate_target_gpa` — aggregate target-GPA estimate without reading OBS
 - `estimate_relative_grade(class_scores, my_score)` — likely letter grade under İTÜ's
