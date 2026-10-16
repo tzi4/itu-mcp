@@ -72,6 +72,9 @@ esac
 
 if [ "${ITU_MCP_SKIP_SETUP:-0}" = "1" ]; then
   say "Installed. Run \`$ITU_MCP --setup\` to save your login and configure your MCP clients."
+elif [ -f "$HOME/.itu-mcp/.env" ] && grep -q '^NINOVA_PASSWORD[=].' "$HOME/.itu-mcp/.env"; then
+  # Running the same command again is the update; keep the saved login and client settings.
+  say "Updated. Your saved login and client settings are unchanged; restart your MCP client."
 elif [ -t 0 ]; then
   "$ITU_MCP" --setup
 elif (exec </dev/tty) 2>/dev/null; then

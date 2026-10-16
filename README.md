@@ -242,9 +242,11 @@ and prints the `claude mcp add` command for Claude Code. Leave the login empty i
 you only want the public tools.
 
 For an always-on Linux server such as a Raspberry Pi, `scripts/install-server.sh`
-sets up a systemd service instead. To update, run the same command again. When
-there is an update, your assistant mentions it once; the server checks GitHub at
-most once a day, and `ITU_MCP_UPDATE_CHECK=0` turns that off.
+sets up a systemd service instead. Updating is one command too: `itu-mcp --update`
+on a computer, or the same install command again on Windows or a server. When there
+is an update, your assistant tells you once, with the exact command for your
+install; the server checks GitHub at most once a day, and `ITU_MCP_UPDATE_CHECK=0`
+turns that off.
 
 **The `itu-mcp` package on PyPI and the older upstream packages are not
 distributions of this fork.** The [installation guide](docs/installation.md) covers

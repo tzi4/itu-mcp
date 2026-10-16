@@ -120,9 +120,19 @@ To remove it: `sudo systemctl disable --now itu-mcp-paperbridge`, then delete
 
 ## Updates
 
-Run the install command again; it installs the latest commit of `main` and keeps
-your settings. Restart or reconnect your MCP client afterwards; the server script
-restarts the service itself.
+Updating is one command, and the update notice names the right one for your install:
+
+| Install | Command |
+| --- | --- |
+| macOS or Linux computer | `itu-mcp --update` |
+| Windows computer | `powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/tzi4/itu-mcp-paperbridge/main/scripts/install.ps1 \| iex"` |
+| Linux server | `curl -fsSL https://raw.githubusercontent.com/tzi4/itu-mcp-paperbridge/main/scripts/install-server.sh \| sudo sh` |
+
+Each installs the latest commit of `main` and keeps your saved login and client
+settings; running the original install command again does the same. Restart or
+reconnect your MCP client afterwards; the server script restarts the service
+itself. On Windows, `itu-mcp --update` prints the PowerShell command, because a
+running program cannot replace its own `.exe` there.
 
 The server tells you when an update exists. At most once a day, on a background
 thread that never delays a tool call, it asks the GitHub API how many commits

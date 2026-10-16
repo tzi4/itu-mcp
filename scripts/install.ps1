@@ -74,8 +74,12 @@ function Install-ItuMcp {
         Write-Host "Note: $binDir is not on your PATH. Run ``uv tool update-shell`` to add it."
     }
 
+    $savedEnv = Join-Path $env:USERPROFILE '.itu-mcp\.env'
     if ($env:ITU_MCP_SKIP_SETUP -eq '1') {
         Write-Host "Installed. Run `"$ituMcp`" --setup to save your login and configure your MCP clients."
+    } elseif ((Test-Path $savedEnv) -and (Select-String -Path $savedEnv -Pattern '^NINOVA_PASSWORD[=].' -Quiet)) {
+        # Running the same command again is the update; keep the saved login and client settings.
+        Write-Host "Updated. Your saved login and client settings are unchanged; restart your MCP client."
     } else {
         & $ituMcp --setup
     }

@@ -175,3 +175,72 @@ class CheckNowTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UpdateCommandTests(unittest.TestCase):
+    SHA_OLD = "a" * 40
+    SHA_NEW = "b" * 40
+
+    def test_one_command_per_install_kind(self) -> None:
+        from ninova_mcp import update_check as uc
+        self.assertEqual(uc.update_command(windows=False, server=False), "itu-mcp --update")
+        self.assertIn("install.ps1 | iex", uc.update_command(windows=True, server=False))
+        self.assertIn("install-server.sh | sudo sh", uc.update_command(windows=True, server=True))
+
+    def test_notice_names_the_command(self) -> None:
+        from unittest import mock
+        from ninova_mcp import update_check as uc
+        with mock.patch.object(uc, "update_command", return_value="itu-mcp --update"):
+            notice = uc.notice_from_record({"installed_commit": self.SHA_OLD, "behind_by": 3}, self.SHA_OLD)
+        self.assertIn("`itu-mcp --update`", notice)
+        self.assertIn("3 new commits", notice)
+
+    def _run(self, *, command="itu-mcp --update", commit=SHA_OLD, latest=SHA_NEW, uv="/home/u/.local/bin/uv",
+             returncode=0):
+        from unittest import mock
+        from types import SimpleNamespace
+        from ninova_mcp import update_check as uc
+        lines, calls = [], []
+        def run(argv, check=False):
+            calls.append(argv)
+            return SimpleNamespace(returncode=returncode)
+        with mock.patch.object(uc, "installed_commit", return_value=commit), \
+                mock.patch.object(uc, "update_command", return_value=command), \
+                mock.patch.object(uc, "find_uv", return_value=uv), \
+                mock.patch.object(uc, "latest_commit", return_value=latest):
+            code = uc.run_update(out=lines.append, run=run)
+        return code, lines, calls
+
+    def test_posix_update_installs_the_latest_commit(self) -> None:
+        code, lines, calls = self._run()
+        self.assertEqual(code, 0)
+        self.assertEqual(calls[0][:3], ["/home/u/.local/bin/uv", "tool", "install"])
+        self.assertTrue(calls[0][-1].endswith(f"/archive/{self.SHA_NEW}.tar.gz"))
+        self.assertIn("Restart your MCP client", lines[-1])
+
+    def test_up_to_date_and_failures(self) -> None:
+        self.assertEqual(self._run(latest=self.SHA_OLD)[2], [])
+        code, lines, _ = self._run(returncode=1)
+        self.assertEqual(code, 1)
+        self.assertIn("unchanged", lines[-1])
+        self.assertEqual(self._run(latest=None)[0], 1)
+
+    def test_windows_and_server_print_their_command(self) -> None:
+        for command in ("powershell ... install.ps1 | iex", "curl ... install-server.sh | sudo sh"):
+            code, lines, calls = self._run(command=command)
+            self.assertEqual((code, calls), (0, []))
+            self.assertIn(command, lines[-1])
+
+    def test_unrecorded_install_cannot_update(self) -> None:
+        code, lines, calls = self._run(commit=None)
+        self.assertEqual((code, calls), (1, []))
+
+    def test_latest_commit_parses_github_sha(self) -> None:
+        from types import SimpleNamespace
+        from ninova_mcp import update_check as uc
+        self.assertEqual(uc.latest_commit(get=lambda *a, **k: SimpleNamespace(status_code=200, text=self.SHA_NEW + "\n")),
+                         self.SHA_NEW)
+        self.assertIsNone(uc.latest_commit(get=lambda *a, **k: SimpleNamespace(status_code=403, text="rate limited")))
+        def offline(*a, **k):
+            raise OSError("offline")
+        self.assertIsNone(uc.latest_commit(get=offline))

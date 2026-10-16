@@ -6626,6 +6626,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Save your ITU login in a private file and add this server to local MCP clients.",
     )
     parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Update this install to the newest build of this fork (or print the one command that does).",
+    )
+    parser.add_argument(
         "--check-update",
         action="store_true",
         help="Check GitHub now for a newer build of this fork, print the result, and exit.",
@@ -6693,6 +6698,9 @@ def main(argv: list[str] | None = None) -> None:
         from .installer import run_setup
 
         raise SystemExit(run_setup())
+
+    if args.update:
+        raise SystemExit(update_check.run_update())
 
     if args.check_update:
         raise SystemExit(_print_update_check())
