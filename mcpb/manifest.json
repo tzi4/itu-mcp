@@ -36,7 +36,8 @@
         "NINOVA_PASSWORD": "${user_config.ninova_password}",
         "NINOVA_MAIL_USERNAME": "${user_config.mail_username}",
         "NINOVA_MAIL_PASSWORD": "${user_config.mail_password}",
-        "ITU_MCP_FULL_TOOLS": "${user_config.full_tools}"
+        "ITU_MCP_FULL_TOOLS": "${user_config.full_tools}",
+        "ITU_MCP_HOCAMETRE": "${user_config.hocametre}"
       },
       "platform_overrides": {
         "win32": {
@@ -189,6 +190,14 @@
     {
       "name": "diff_snapshot",
       "description": "Compare the current state of a Ninova page against a previously stored snapshot."
+    },
+    {
+      "name": "hocametre_instructor",
+      "description": "Look up one instructor's anonymous student ratings on notkutusu.com HocaMetre (off unless enabled)."
+    },
+    {
+      "name": "hocametre_course_sections",
+      "description": "List a course's sections with each instructor's notkutusu.com HocaMetre ratings (off unless enabled)."
     }
   ],
   "user_config": {
@@ -222,6 +231,13 @@
       "type": "boolean",
       "title": "Full tool list",
       "description": "List every operation as its own tool instead of the default compact list, where read-only operations are reached through itu_call. Uses more tokens per conversation.",
+      "default": false,
+      "required": false
+    },
+    "hocametre": {
+      "type": "boolean",
+      "title": "HocaMetre instructor ratings",
+      "description": "Read anonymous student ratings of instructors from notkutusu.com. Off by default.",
       "default": false,
       "required": false
     }

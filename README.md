@@ -111,6 +111,7 @@ assistant, and it fetches the real data and answers.
 | "Transcript, advisor or internship?" | OBS profile, advisor, internship and transcript PDF |
 | "What's for lunch today? What's my card balance?" | ITU Portal menu, card and notification tools |
 | "When is my final? Are there open seats?" | Public OBS final exam and course schedule tools |
+| "Which MAT 201E section has the better-rated instructor?" | Public OBS sections with anonymous student ratings from notkutusu.com HocaMetre; off until you turn it on |
 | "When is the next shuttle? When does the pool close?" | Campus service tools |
 | "Does the library have this book?" | Public catalog search and copy status |
 | "Read my latest emails, tell me which ones matter, and summarize their PDF or image attachments." | Read-only ITU Mail tools and PDF/JPEG/PNG attachment inspection |

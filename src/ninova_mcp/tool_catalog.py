@@ -83,6 +83,10 @@ DOMAINS: dict[str, tuple[str, tuple[str, ...]]] = {
          "archive_instructor_courses", "archive_term_sections", "archive_fill_rate",
          "archive_search_courses", "archive_list_branches", "archive_compare_terms"),
     ),
+    "hocametre": (
+        "HocaMetre: anonymous student ratings of instructors from notkutusu.com, per instructor or per course section",
+        ("hocametre_instructor", "hocametre_course_sections"),
+    ),
     "mail": (
         "ITU Mail: inbox, sent messages, search, message bodies, attachments, sending a reviewed message",
         ("mail_status", "mail_list_inbox", "mail_list_sent", "mail_get_message",
@@ -199,6 +203,8 @@ KEYWORDS: dict[str, str] = {
     "archive_search_courses": "arşivde ders ara",
     "archive_list_branches": "arşiv bölüm kodları",
     "archive_compare_terms": "iki dönemi karşılaştır",
+    "hocametre_instructor": "hocametre notkutusu hoca yorumları hocası nasıl hoca puanı değerlendirme iyi mi not veriyor mu yoklama alıyor mu",
+    "hocametre_course_sections": "hocametre notkutusu hangi hocadan almalıyım hangi şube hoca seçimi şubeleri hocalara göre karşılaştır hoca puanları crn pick choose best instructor section rating",
     "mail_status": "mail durumu okunmamış sayısı",
     "mail_list_inbox": "gelen kutusu maillerim e-postalar okunmamış",
     "mail_list_sent": "gönderilen mailler giden kutusu",
