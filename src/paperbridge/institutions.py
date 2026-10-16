@@ -27,7 +27,8 @@ class ItuProfile:
                    "cambridge": "https://www.cambridge.org/core",
                    "oxford": "https://academic.oup.com/journals",
                    "sage": "https://journals.sagepub.com/",
-                   "taylor_francis": "https://www.tandfonline.com/"}.get(provider)
+                   "taylor_francis": "https://www.tandfonline.com/",
+                   "asme": "https://asmedigitalcollection.asme.org/"}.get(provider)
         platform_login = (("https://go.openathens.net/redirector/itu.edu.tr?url="
                            + quote(landing, safe="")) if landing else None)
         if provider in {"wiley", "aiaa", "sage", "taylor_francis"}:
@@ -39,11 +40,14 @@ class ItuProfile:
         elif provider == "springer":
             from .springer_login import springer_login_url
             platform_login = springer_login_url("https://link.springer.com/")
+        from .openathens import PUBLISHERS, openathens_configured
+        openathens = provider in PUBLISHERS
         return {"name": "Istanbul Technical University",
                 "platform_login_url": platform_login,
-                "authentication": "itu_yetkim_saml" if provider in {"ieee", "springer"} else "openathens_or_provider",
+                "authentication": "itu_yetkim_saml" if provider in {"ieee", "springer"}
+                    else "itu_openathens" if openathens else "openathens_or_provider",
                 "directory_url": "https://service.library.itu.edu.tr/web/Veritabanlari/Tumu",
                 "entitlement": "not_checked",
-                "login_automated": provider in {"ieee", "springer"},
+                "login_automated": provider in {"ieee", "springer"} or (openathens and openathens_configured()),
                 "credential_kind": "itu_institutional_account" if provider in {"ieee", "springer"}
                     else "itu_library_account" if landing else "not_resolved"}

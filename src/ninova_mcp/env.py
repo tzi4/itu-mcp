@@ -82,7 +82,7 @@ def _unquote(value: str) -> str:
 
 
 # Only this project's settings are read from a .env file.
-ENV_FILE_PREFIXES = ("NINOVA_", "ITU_MCP_")
+ENV_FILE_PREFIXES = ("NINOVA_", "ITU_MCP_", "PAPERBRIDGE_")
 
 
 def load_ninova_env(

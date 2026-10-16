@@ -5,9 +5,13 @@ import os
 from itertools import zip_longest
 
 from .discovery import DiscoveryError, MetadataClient, public_access
+from .openathens import PUBLISHERS as OPENATHENS_PUBLISHERS, openathens_configured
 from .identifiers import doi_url, normalize_doi
 from .publishers import identify_platform, platform_coverage, unavailable_next_action
 from .storage import DocumentStore
+
+# Publishers with a retrieval adapter: their own (IEEE, Springer) or ITU's OpenAthens.
+ADAPTED = frozenset({"ieee", "springer"}) | frozenset(OPENATHENS_PUBLISHERS)
 
 
 def _browser_configuration():
@@ -52,6 +56,9 @@ class PaperBridge:
                 self.providers = [self.provider,
                     SpringerBrowserProvider(store, runner=runner, login=springer_login,
                         browser_engine=config["springer_override"])]
+                if openathens_configured():
+                    from .openathens import OpenAthensProvider
+                    self.providers.append(OpenAthensProvider(store, runner=runner))
             else:
                 self.provider = IeeeBrowserProvider(store, browser_port(config["port"]), login=login)
                 self.providers = [self.provider]
@@ -91,11 +98,13 @@ class PaperBridge:
     def access_details(self, paper: dict) -> dict:
         cached = paper.get('content_level') == 'local_chunk_available' and str(paper.get('id', '')).startswith('pb:')
         selected = next((candidate for candidate in self.providers if candidate.supports(paper)), None)
-        provider = selected.name if selected else identify_platform(paper)
+        # The OpenAthens adapter serves several publishers; report the publisher itself.
+        provider = (identify_platform(paper) if selected is None or selected.name == 'openathens'
+                    else selected.name)
         result = {'provider': provider,
                 'retrieval': 'authorized_archive_available' if cached else
                     'configured_not_attempted' if selected else
-                    'adapter_not_configured_or_article_route_unsupported' if provider in {'ieee', 'springer'} else
+                    'adapter_not_configured_or_article_route_unsupported' if provider in ADAPTED else
                     'adapter_not_implemented',
                 'entitlement': 'not_checked', 'full_text_read_by_discovery': False,
                 'figures_read_by_discovery': False}
@@ -147,7 +156,7 @@ class PaperBridge:
                 "institution": self.institution.entry_points(provider) if self.institution else None,
                 "provider": provider, "subscription_retrieval": (
                     "experimental_browser_session" if configured
-                    else "not_configured" if provider in {"ieee", "springer"} else "not_implemented"),
+                    else "not_configured" if provider in ADAPTED else "not_implemented"),
                 "external_model_permission": "not_evaluated", "access": access}
 
     def fetch(self, paper_id: str) -> dict:
@@ -318,11 +327,14 @@ class PaperBridge:
         config = _browser_configuration()
         configured = (["ieee", "springer"] if config["managed"]
                       else ["ieee"] if config["enabled"] else [])
+        if config["managed"] and openathens_configured():
+            configured += sorted(OPENATHENS_PUBLISHERS)
         return {"version": "0.1.0.dev19", "deployment": "single_user_prototype",
                 "execution": "importing_process", "llm_api_calls": False,
                 "ready": ["crossref_metadata", "local_pdf_text_ingest", "permission_gated_chunk_fetch", "pdf_page_images", "bounded_page_batches"],
                 "optional": ["unpaywall_discovery_with_contact_email"],
-                "experimental": ["ieee_browser_session_retrieval", "springer_browser_session_retrieval", "operator_browser_login",
+                "experimental": ["ieee_browser_session_retrieval", "springer_browser_session_retrieval",
+                                 "openathens_browser_session_retrieval", "operator_browser_login",
                                  "itu_yetkim_credential_login", "chatgpt_page_file_attachment", "chatgpt_automatic_page_followup"],
                 "browser_provider_configured": config["enabled"],
                 "browser_engine": config["engine"],
@@ -341,7 +353,8 @@ class PaperBridge:
                 "status_scope": "configuration_only_no_network_requests",
                 "institutional_retrieval_verified": None,
                 "institutional_retrieval_verification": "not_checked_by_status",
-                "not_implemented": ["automatic_openathens_login", "elsevier_wiley_other_publisher_downloads",
+                "openathens_login_configured": openathens_configured(),
+                "not_implemented": ["elsevier_wiley_other_publisher_downloads",
                                     "ocr", "multi_user_isolation"]}
 
 

@@ -97,7 +97,8 @@ class PublisherCoverageTests(unittest.TestCase):
         self.assertEqual(coverage['springer']['adapter'],'configured_experimental')
         self.assertEqual(coverage['nature']['adapter'],'not_implemented')
         self.assertTrue(all(e['entitlement']=='not_checked' for e in coverage.values()))
-        self.assertEqual({e['provider'] for e in platform_coverage([]) if e['adapter']=='not_configured'},{'ieee','springer'})
+        self.assertEqual({e['provider'] for e in platform_coverage([]) if e['adapter']=='not_configured'},
+                         {'ieee','springer','asme','acs','cambridge','oxford','taylor_francis','sage','acm'})
 
     def test_legacy_public_pdf_flag_does_not_register_or_advertise_mdpi(self):
         policy = self.store.root / "publisher-policy.json"
