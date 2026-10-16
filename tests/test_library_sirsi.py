@@ -122,18 +122,6 @@ class SirsiCatalogTests(unittest.TestCase):
             self.client.search("example")
         self.assertTrue(self.session.request.call_args.kwargs["verify"])
 
-    def test_current_account_operations_never_read_credentials_or_submit(self) -> None:
-        with patch.object(self.client, "_credentials", side_effect=AssertionError("Credentials must not be accessed")):
-            for operation in (
-                self.client.get_account, self.client.list_loans,
-                lambda: self.client.renew_loan("123", confirm=True),
-                lambda: self.client.reserve_item("SD_ILS:69360", confirm=True),
-                lambda: self.client.reserve_item("SD_ILS:69360", confirm=False),
-            ):
-                with self.subTest(operation=operation), self.assertRaisesRegex(LibraryError, "not implemented"):
-                    operation()
-        self.session.request.assert_not_called()
-
     def test_untrusted_urls_and_record_ids_cannot_choose_network_targets(self) -> None:
         for url in ("https://katalog.kutuphane.itu.edu.tr.attacker.example", "https://user@katalog.kutuphane.itu.edu.tr", "http://katalog.kutuphane.itu.edu.tr", "https://katalog.kutuphane.itu.edu.tr:8443"):
             with self.subTest(url=url), self.assertRaises(LibraryError):

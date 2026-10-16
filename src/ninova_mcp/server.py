@@ -2511,31 +2511,6 @@ class NinovaMcpApp:
         """Read copy-level availability for a public library record."""
         return self.library.check_availability(record_id)
 
-    def library_get_account(self) -> dict[str, Any]:
-        """Read the separate İTÜ Library patron account."""
-        return self.library.get_account()
-
-    def library_list_loans(self) -> dict[str, Any]:
-        """List current library loans and renewal identifiers."""
-        return self.library.list_loans()
-
-    def library_renew_loan(self, loan_id: str, confirm: bool = False) -> dict[str, Any]:
-        """Preview or explicitly confirm renewal of one library loan."""
-        return self.library.renew_loan(loan_id, confirm=confirm)
-
-    def library_reserve_item(
-        self,
-        record_id: str,
-        pickup_location: str | None = None,
-        confirm: bool = False,
-    ) -> dict[str, Any]:
-        """Preview or explicitly confirm a library hold request."""
-        return self.library.reserve_item(
-            record_id,
-            pickup_location=pickup_location,
-            confirm=confirm,
-        )
-
     def find_open_course_sections(
         self,
         department_codes: list[str],
@@ -6201,44 +6176,6 @@ TOOLS: list[dict[str, Any]] = [
         "inputSchema": {"type": "object", "properties": {"record_id": {"type": "string", "pattern": "^(SD_ILS:[0-9]{1,12}|b[0-9]{5,12})$"}}, "required": ["record_id"], "additionalProperties": False},
     },
     {
-        "name": "library_get_account",
-        "title": "İTÜ Library Account",
-        "description": "Legacy library account reader. Unavailable on the current Sirsi platform; use the official catalog account page.",
-        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
-    },
-    {
-        "name": "library_list_loans",
-        "title": "İTÜ Library Loans",
-        "description": "Legacy library loan reader. Unavailable on the current Sirsi platform; use the official catalog account page.",
-        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
-    },
-    {
-        "name": "library_renew_loan",
-        "title": "Renew İTÜ Library Loan",
-        "description": "Legacy library renewal tool. Unavailable on the current Sirsi platform, including with confirm=true.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {"loan_id": {"type": "string"}, "confirm": {"type": "boolean", "default": False}},
-            "required": ["loan_id"],
-            "additionalProperties": False,
-        },
-    },
-    {
-        "name": "library_reserve_item",
-        "title": "Reserve İTÜ Library Item",
-        "description": "Legacy library hold tool. Unavailable on the current Sirsi platform, including with confirm=true.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "record_id": {"type": "string", "pattern": "^(SD_ILS:[0-9]{1,12}|b[0-9]{5,12})$"},
-                "pickup_location": {"type": "string"},
-                "confirm": {"type": "boolean", "default": False},
-            },
-            "required": ["record_id"],
-            "additionalProperties": False,
-        },
-    },
-    {
         "name": "find_open_course_sections",
         "title": "Find Open Course Sections",
         "description": "Find sections with available seats across selected public OBS department schedules.",
@@ -6633,8 +6570,6 @@ REMOTE_EXCLUDED_TOOLS = {
     "get_assignment_upload_slots",
     "read_resource_text",
     "read_page",
-    "library_renew_loan",
-    "library_reserve_item",
     # Writes to a caller-supplied output_dir on the host filesystem, same as
     # download_resource/snapshot_page above — belongs in the same exclusion
     # for the same reason.
@@ -6666,10 +6601,8 @@ STATEFUL_TOOL_NAMES = {
     "snapshot_page",
     "obs_download_transcript",
     "export_calendar",
-    # These three change data in an external service and are remote-excluded.
+    # These change data in an external service and are remote-excluded.
     "submit_assignment",
-    "library_renew_loan",
-    "library_reserve_item",
     "obs_save_registration_draft",
     # Holds a pending draft in memory; mail_send_message sends it and
     # mail_save_draft appends it to the Drafts folder.

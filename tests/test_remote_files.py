@@ -290,7 +290,7 @@ class RemoteFilesTests(unittest.TestCase):
             tools = {tool.name: tool for tool in asyncio.run(server.list_tools())}
         from ninova_mcp.server import LOCAL_TOOL_NAMES
         self.assertEqual(set(tools), set(LOCAL_TOOL_NAMES))
-        for name in ("submit_assignment", "library_renew_loan", "library_reserve_item"):
+        for name in ("submit_assignment",):
             self.assertIs(tools[name].annotations.readOnlyHint, False)
             self.assertIs(tools[name].inputSchema["properties"]["confirm"]["default"], False)
         self.assertIn("managed HDD", tools["download_resource"].description)

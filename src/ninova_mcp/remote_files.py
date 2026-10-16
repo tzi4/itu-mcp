@@ -24,16 +24,15 @@ REMOTE_FILE_TOOLS = {
     "download_resource", "read_resource_text", "read_page", "snapshot_page",
     "diff_snapshot", "obs_download_transcript", "get_assignment_upload_slots", "export_calendar",
 }
-REMOTE_WRITE_TOOLS = {"submit_assignment", "library_renew_loan", "library_reserve_item"}
+REMOTE_WRITE_TOOLS = {"submit_assignment"}
 REMOTE_FILE_INSTRUCTIONS = (
     "\nRemote files are stored on the server's managed data disk, not on the user's PC. "
     "Use returned paths with read_resource_text. File paths outside the managed "
     "downloads/uploads folders are forbidden. Users can place assignment files in "
     "the managed uploads folder via SSH/SFTP. Never execute downloaded files. "
-    "For submit_assignment/library_renew_loan/library_reserve_item first preview "
-    "with confirm=false, then obtain explicit user approval of that exact operation "
-    "before confirm=true. Enabling a tool is not approval to perform a submission, "
-    "replacement, renewal or reservation. On HTTP 429 respect Retry-After."
+    "For submit_assignment first preview with confirm=false, then obtain explicit "
+    "user approval of that exact operation before confirm=true. Enabling a tool is "
+    "not approval to perform a submission or replacement. On HTTP 429 respect Retry-After."
 )
 
 
@@ -162,8 +161,6 @@ class RemoteNinovaMcpApp(NinovaMcpApp):
         "read_resource_text": " Remote: paths must be inside managed downloads/uploads. Parsing is bounded to 25 MiB, 200 PDF pages, 30 seconds and (Linux) 512 MiB memory. save_download saves to HDD.",
         "obs_download_transcript": " Remote: omit output_dir for the managed HDD downloads folder; 'transcripts' and 'downloads/transcripts' select its transcripts subfolder. Absolute paths must stay inside managed downloads.",
         "submit_assignment": " Remote: file_path must be a file deliberately staged in the managed HDD uploads folder via SSH/SFTP, for example 'uploads/homework.pdf' or its absolute server path. Files in downloads are intentionally rejected, including with confirm=false; do not automatically copy downloads into uploads. First preview with confirm=false, obtain explicit approval of this exact submission, then confirm=true; replacement needs separate approval.",
-        "library_renew_loan": " First preview with confirm=false and obtain explicit user approval of this exact renewal before confirm=true.",
-        "library_reserve_item": " First preview with confirm=false and obtain explicit user approval of this exact reservation before confirm=true.",
         "snapshot_page": " Remote: snapshots are stored only in the managed HDD snapshots folder.",
         "diff_snapshot": " Remote: snapshot_path must refer to a snapshot in the managed HDD snapshots folder.",
         "export_calendar": " Remote: the file is saved in the managed HDD downloads folder (calendar/); output_path is ignored. Give the user the returned ics text.",

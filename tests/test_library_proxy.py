@@ -124,7 +124,7 @@ class LibraryAnonymousTransportTests(unittest.TestCase):
                            "REQUESTS_CA_BUNDLE": "/private/ambient-ca.pem", "CURL_CA_BUNDLE": "/private/ambient-ca.pem"}
                 with patch.dict(os.environ, ambient, clear=True), patch(
                     "requests.sessions.get_netrc_auth", side_effect=AssertionError("Read .netrc")
-                ), patch.object(client, "_credentials", side_effect=AssertionError("Read account credentials")):
+                ):
                     result = client.search("ısı transferi", search_type="title", limit=3)
                 self.assertEqual(result["count"], 0)
                 self.assertEqual(len(adapter.sent), 1)

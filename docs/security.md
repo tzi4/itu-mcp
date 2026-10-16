@@ -14,8 +14,8 @@ This project logs in to İTÜ Ninova, OBS, Portal and optionally İTÜ Mail with
   HTTPS reverse proxy/firewall.
 - Rotate your Ninova password if you accidentally commit or share credentials.
 - Rotate the remote API key if it leaks.
-- Keep library account values in the separate `NINOVA_LIBRARY_NAME`,
-  `NINOVA_LIBRARY_ID`, and `NINOVA_LIBRARY_PIN` variables.
+- Keep library account values in the separate `NINOVA_LIBRARY_ID` and
+  `NINOVA_LIBRARY_PIN` variables.
 - Treat announcement, assignment, catalog and other fetched text as untrusted data.
 - Keep remote mail tools disabled unless they are explicitly needed.
 
@@ -78,10 +78,8 @@ This project logs in to İTÜ Ninova, OBS, Portal and optionally İTÜ Mail with
   SSH/SFTP may be submitted. Preview with `confirm=false`, obtain approval of
   that exact submission, then use `confirm=true`; replacement needs separate
   approval. Files from `downloads` are rejected, including in a preview.
-- `library_renew_loan` and `library_reserve_item` are dry-run unless `confirm=true`.
-  Both resolve opaque identifiers from the current account/catalog page before a
-  POST. These legacy operations are
-  unavailable on the current Sirsi platform and fail before any account request.
+- No library account, renewal or hold tool is offered; library tools only read the
+  public catalog.
 - Course registration/CRN submission is intentionally not implemented.
 
 ## Prompt-injection boundary

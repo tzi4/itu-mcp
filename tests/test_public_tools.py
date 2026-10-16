@@ -16,7 +16,6 @@ from ninova_mcp.public_parsing import (
     extract_degree_plan_list,
     extract_directory_results,
     extract_final_exam_schedule,
-    extract_library_account,
     extract_library_record,
     extract_library_search_results,
     extract_shuttle_schedule,
@@ -74,8 +73,6 @@ class PublicParserTests(unittest.TestCase):
         self.assertEqual(search["records"][0]["record_id"], "b1179767")
         record = extract_library_record(html, "https://divit.library.itu.edu.tr/record=b1179767")
         self.assertEqual(record["copy_count"], 1)
-        account = extract_library_account(html, "https://divit.library.itu.edu.tr/patroninfo")
-        self.assertEqual(account["loans"][0]["loan_id"], "loan-1")
 
 
 class PlanningTests(unittest.TestCase):

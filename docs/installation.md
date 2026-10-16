@@ -245,7 +245,7 @@ configure the features you want to use:
 | Morning briefings | Scheduling in your AI app or a separate automation setup |
 
 Remote mail tools are on by default; `NINOVA_REMOTE_ENABLE_MAIL=0` turns them off.
-Remote file tools and write actions (submissions, library renewals/reservations)
+Remote file tools and write actions (assignment submissions)
 are on by default once API-key authentication and an absolute
 `NINOVA_REMOTE_FILE_ROOT` pointing to your managed data directory are configured;
 without them they stay off so a basic setup still starts. Set

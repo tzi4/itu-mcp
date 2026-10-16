@@ -53,11 +53,7 @@ EXPECTED_TOOL_GROUPS = {
         "get_shuttle_schedule",
         "get_sports_facility_hours",
         "library_check_availability",
-        "library_get_account",
         "library_get_item",
-        "library_list_loans",
-        "library_renew_loan",
-        "library_reserve_item",
         "library_search",
         "list_degree_faculties",
         "list_degree_programs",
@@ -155,6 +151,14 @@ class ToolRegistrationTests(unittest.TestCase):
                 with self.subTest(group=group, tool=name):
                     self.assertIn(name, registered)
                     self.assertTrue(callable(getattr(app, name)))
+
+    def test_unavailable_library_account_tools_are_not_published(self) -> None:
+        # The Sirsi catalog has no supported account, loan, renewal or hold API.
+        for name in ("library_get_account", "library_list_loans",
+                     "library_renew_loan", "library_reserve_item"):
+            with self.subTest(tool=name):
+                self.assertNotIn(name, LOCAL_TOOL_NAMES)
+                self.assertFalse(hasattr(NinovaMcpApp, name))
 
     def test_sent_mail_methods_forward_mailbox_to_client(self) -> None:
         from unittest.mock import Mock

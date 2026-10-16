@@ -209,7 +209,7 @@ class CallTests(unittest.TestCase):
         self.assertIn("target_gpa", result["input_schema"]["properties"])
 
     def test_write_tools_are_never_dispatched(self) -> None:
-        for operation in ("submit_assignment", "obs_save_registration_draft", "library_renew_loan"):
+        for operation in ("submit_assignment", "obs_save_registration_draft", "help_submit_ticket"):
             with self.subTest(operation=operation):
                 with mock.patch.object(server.NinovaMcpApp, operation) as write:
                     result = _call(self.mcp, CALL_TOOL_NAME, {"operation": operation, "arguments": {}})

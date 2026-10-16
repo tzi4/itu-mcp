@@ -73,10 +73,10 @@ export ITU_MCP_HOCAMETRE_CACHE_TTL_SECONDS="21600"   # HocaMetre rating and sear
 The update check asks the GitHub API at most once a day, off the request path, how far the
 installed commit is behind this fork's `main`; see [Updates](installation.md#updates).
 
-The separate library patron account does not use the Ninova password:
+The separate library account does not use the Ninova password. PaperBridge uses it to
+sign in to ITU OpenAthens when no dedicated OpenAthens values are set:
 
 ```dotenv
-NINOVA_LIBRARY_NAME=Surname, Name
 NINOVA_LIBRARY_ID=student-number
 NINOVA_LIBRARY_PIN=separate-library-pin
 # Optional custom corporate CA; TLS verification is never disabled automatically.
@@ -586,11 +586,8 @@ remote HTTP transports.
 - `library_search` / `library_get_item` / `library_check_availability` are public.
   The default Sirsi adapter uses `SD_ILS:` record IDs and paginates using `next_offset`.
   Copy statuses that require asynchronous loading remain unknown.
-- `library_get_account` / `library_list_loans` are unavailable on the current Sirsi
-  platform. Separate library credentials apply only to explicit legacy configuration.
-- `library_renew_loan` and `library_reserve_item` are unavailable on Sirsi. In legacy
-  mode they are dry-run by default and submit only with `confirm=true`. They are not
-  exposed by the remote HTTP transport.
+- Library account, loan, renewal and hold actions are not offered: the current Sirsi
+  catalog has no supported interface for them. Use the official catalog account page.
 - If the library host presents an expired or otherwise invalid certificate, the client
   fails closed with a TLS error instead of disabling verification.
 

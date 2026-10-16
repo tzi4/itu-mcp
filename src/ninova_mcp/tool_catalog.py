@@ -76,10 +76,8 @@ DOMAINS: dict[str, tuple[str, tuple[str, ...]]] = {
          "get_sports_facility_hours", "get_itu_announcements"),
     ),
     "library": (
-        "Library: catalog search, availability, account, loans, renewals and reservations",
-        ("library_search", "library_get_item", "library_check_availability",
-         "library_get_account", "library_list_loans", "library_renew_loan",
-         "library_reserve_item"),
+        "Library: public catalog search, records and copy availability",
+        ("library_search", "library_get_item", "library_check_availability"),
     ),
     "archive": (
         "Course archive since 2016: past sections, instructors, fill rates, term comparison",
@@ -201,10 +199,6 @@ KEYWORDS: dict[str, str] = {
     "library_search": "kütüphane kitap ara katalog",
     "library_get_item": "kitap ayrıntısı",
     "library_check_availability": "kitap rafta mı ödünç alınabilir mi müsait",
-    "library_get_account": "kütüphane hesabım ceza",
-    "library_list_loans": "ödünç aldığım kitaplar iade tarihi",
-    "library_renew_loan": "kitap süre uzat yenile",
-    "library_reserve_item": "kitap ayırt rezerve",
     "archive_list_terms": "arşiv dönemleri",
     "archive_course_history": "dersin geçmişi hangi dönem açılıyor",
     "archive_who_taught": "dersi kim verdi geçmiş hocalar eğitmen",

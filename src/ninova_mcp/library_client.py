@@ -1,4 +1,4 @@
-"""Public İTÜ Library catalog client with explicit legacy/account limitations."""
+"""Public İTÜ Library catalog client: search, records and copy availability."""
 
 from __future__ import annotations
 
@@ -15,16 +15,15 @@ from .cache import TtlCache, parse_ttl_seconds
 from .client import DEFAULT_HEADERS, _request_delay_seconds
 from .http_security import request_with_safe_redirects
 from .library_catalog import CATALOG_URL, RECORD_PATTERN, SEARCH_FIELDS, parse_record, parse_search, record_url
-from .parsing import clean_text, make_soup
+from .parsing import clean_text
 from .public_parsing import (
-    extract_library_account,
     extract_library_record,
     extract_library_search_results,
 )
 
 
 class LibraryError(RuntimeError):
-    """İTÜ Library catalog/account error."""
+    """İTÜ Library catalog error."""
 
 
 def _library_proxy_url(raw: str | None) -> str | None:
@@ -93,7 +92,6 @@ class LibraryClient:
         )
         self._min_request_interval = _request_delay_seconds()
         self._last_request_at = 0.0
-        self._account_response: requests.Response | None = None
 
     def _verify_value(self) -> bool | str:
         ca_bundle = os.getenv("NINOVA_LIBRARY_CA_BUNDLE")
@@ -326,153 +324,3 @@ class LibraryClient:
                 "explicitly recognized statuses; unknown copies are not treated as unavailable."
             ))
         return self._mark(result)
-
-    def _credentials(self) -> tuple[str, str, str]:
-        name = os.getenv("NINOVA_LIBRARY_NAME")
-        university_id = os.getenv("NINOVA_LIBRARY_ID")
-        pin = os.getenv("NINOVA_LIBRARY_PIN")
-        if not name or not university_id or not pin:
-            raise LibraryError(
-                "Kütüphane hesabı için NINOVA_LIBRARY_NAME, NINOVA_LIBRARY_ID ve "
-                "NINOVA_LIBRARY_PIN ayrı olarak ayarlanmalı. Ninova şifresi kullanılmaz."
-            )
-        return name, university_id, pin
-
-    def _login(self, *, force: bool = False) -> requests.Response:
-        if not self._legacy:
-            raise LibraryError(
-                "Account, loans, renewals and reservations are not implemented for the new Sirsi catalog. "
-                f"No credentials or account actions were submitted. Use {CATALOG_URL}"
-            )
-        if self._account_response is not None and not force:
-            return self._account_response
-        name, university_id, pin = self._credentials()
-        login_page = self._request("GET", "/patroninfo")
-        soup = make_soup(login_page.text)
-        form = soup.find("form")
-        if form is None:
-            raise LibraryError("Kütüphane hesap giriş formu bulunamadı.")
-        payload = {
-            input_node.get("name"): input_node.get("value", "")
-            for input_node in form.select("input[name]")
-            if input_node.get("name") and input_node.get("type", "").lower() == "hidden"
-        }
-        field_nodes = form.select("input[name]")
-        for node in field_nodes:
-            field = str(node.get("name") or "")
-            key = field.lower()
-            if "pin" in key:
-                payload[field] = pin
-            elif key in {"code", "barcode", "univid", "universityid"} or "code" in key:
-                payload[field] = university_id
-            elif key in {"name", "patronname"} or ("name" in key and "user" not in key):
-                payload[field] = name
-        action = urljoin(login_page.url, form.get("action") or "/patroninfo")
-        response = self._request((form.get("method") or "POST").upper(), action, data=payload)
-        result_soup = make_soup(response.text)
-        if result_soup.find("input", attrs={"name": re.compile("pin", re.I)}):
-            raise LibraryError("Kütüphane hesabına giriş başarısız; ad, üniversite numarası veya PIN hatalı olabilir.")
-        self._account_response = response
-        return response
-
-    def get_account(self) -> dict[str, Any]:
-        response = self._login()
-        result = extract_library_account(response.text, response.url)
-        result["source"] = "divit.library.itu.edu.tr/patroninfo"
-        return self._mark(result)
-
-    def list_loans(self) -> dict[str, Any]:
-        account = self.get_account()
-        return self._mark({
-            "loan_count": account.get("loan_count", 0),
-            "loans": account.get("loans") or [],
-            "url": account.get("url"),
-            "source": account.get("source"),
-        })
-
-    def renew_loan(self, loan_id: str, *, confirm: bool = False) -> dict[str, Any]:
-        target = clean_text(loan_id)
-        if not target or len(target) > 100:
-            raise LibraryError("Geçerli bir loan_id gerekli.")
-        loans = self.list_loans().get("loans") or []
-        loan = next((item for item in loans if str(item.get("loan_id")) == target), None)
-        if loan is None:
-            raise LibraryError("loan_id mevcut ödünç listesinde bulunamadı.")
-        preview = {"action": "renew_library_loan", "loan": loan, "confirmed": confirm}
-        if not confirm:
-            return {**preview, "dry_run": True, "message": "Yenilemek için aynı çağrıyı confirm=true ile tekrarlayın."}
-        response = self._login(force=True)
-        soup = make_soup(response.text)
-        checkbox = soup.find("input", attrs={"type": "checkbox", "value": target}) or soup.find(
-            "input", attrs={"type": "checkbox", "name": target}
-        )
-        if checkbox is None:
-            raise LibraryError("Yenileme kutusu hesap sayfasında bulunamadı; işlem gönderilmedi.")
-        form = checkbox.find_parent("form")
-        if form is None or checkbox.get("name") is None:
-            raise LibraryError("Yenileme formu bulunamadı; işlem gönderilmedi.")
-        payload = {
-            node.get("name"): node.get("value", "")
-            for node in form.select("input[name]")
-            if node.get("name") and node.get("type", "").lower() == "hidden"
-        }
-        payload[checkbox["name"]] = checkbox.get("value", "on")
-        submit = form.find("input", attrs={"name": re.compile("renew", re.I)})
-        if submit and submit.get("name"):
-            payload[submit["name"]] = submit.get("value", "Renew Selected")
-        action = urljoin(response.url, form.get("action") or response.url)
-        result_response = self._request((form.get("method") or "POST").upper(), action, data=payload)
-        self._account_response = result_response
-        result = extract_library_account(result_response.text, result_response.url)
-        return self._mark({**preview, "dry_run": False, "submitted": True, "account": result})
-
-    def reserve_item(
-        self,
-        record_id: str,
-        *,
-        pickup_location: str | None = None,
-        confirm: bool = False,
-    ) -> dict[str, Any]:
-        if not self._legacy:
-            raise LibraryError(f"Reservations are not implemented for the new Sirsi catalog; nothing was submitted. Use {CATALOG_URL}")
-        item = self.get_item(record_id)
-        preview = {
-            "action": "reserve_library_item",
-            "record_id": item.get("record_id"),
-            "title": item.get("title"),
-            "pickup_location": pickup_location,
-            "confirmed": confirm,
-        }
-        if not confirm:
-            return {**preview, "dry_run": True, "message": "Ayırtmak için aynı çağrıyı confirm=true ile tekrarlayın."}
-        self._login()
-        record_response = self._request("GET", f"/record={item['record_id']}")
-        soup = make_soup(record_response.text)
-        request_link = soup.find("a", href=re.compile(r"request|hold", re.I))
-        if request_link is None:
-            raise LibraryError("Bu kayıt için ayırtma bağlantısı bulunamadı; işlem gönderilmedi.")
-        form_response = self._request("GET", urljoin(record_response.url, request_link["href"]))
-        form_soup = make_soup(form_response.text)
-        form = form_soup.find("form")
-        if form is None:
-            raise LibraryError("Ayırtma formu bulunamadı; işlem gönderilmedi.")
-        payload = {
-            node.get("name"): node.get("value", "")
-            for node in form.select("input[name]")
-            if node.get("name") and node.get("type", "").lower() in {"hidden", "submit"}
-        }
-        if pickup_location:
-            target = pickup_location.casefold()
-            select = form.find("select")
-            if select and select.get("name"):
-                option = next(
-                    (opt for opt in select.find_all("option") if target in clean_text(opt.get_text(" ", strip=True)).casefold()),
-                    None,
-                )
-                if option is None:
-                    raise LibraryError("İstenen pickup_location ayırtma formunda bulunamadı; işlem gönderilmedi.")
-                payload[select["name"]] = option.get("value", "")
-        action = urljoin(form_response.url, form.get("action") or form_response.url)
-        submitted = self._request((form.get("method") or "POST").upper(), action, data=payload)
-        result_text = clean_text(make_soup(submitted.text).get_text(" ", strip=True))[:1200]
-        return self._mark({**preview, "dry_run": False, "submitted": True, "result": result_text, "url": submitted.url})

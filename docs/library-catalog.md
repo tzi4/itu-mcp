@@ -17,10 +17,9 @@ copy location, barcode and call number and reports a pending status as unknown.
 only status evidence. The official catalog link is the source for current shelf
 availability. Missing copy tables do not prove that an item has no copies.
 
-Account, loan, renewal and reservation support has not been implemented for
-Sirsi. The existing tool names remain discoverable with explicit unavailable
-descriptions. On this platform they fail before reading account credentials or
-submitting an account action, including when `confirm=true` is supplied.
+Account, loan, renewal and reservation actions are not offered: Sirsi has no
+supported interface for them, so no tool reads library account credentials or
+submits an account action.
 
 An explicitly configured legacy `https://divit.library.itu.edu.tr` base retains
 the old WebPAC implementation for compatibility. Its operational availability is
