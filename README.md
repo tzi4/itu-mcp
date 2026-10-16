@@ -27,7 +27,7 @@ adds three things that neither of them offers:
    your own university access, not only open-access papers.
 3. **A router that saves tokens and time.** Both earlier projects list each
    operation as its own tool; ITU MCP lets you switch whole groups off. Here, instead
-   of loading all 113 tool definitions into every conversation, the 82 read-only
+   of loading all 114 tool definitions into every conversation, the 82 read-only
    operations are reached through one compact tool, so your assistant sees 33 tools.
    In my tests, this server's share of the first prompt dropped to less than half,
    the model picked the right operation more reliably, and several long, multi-step
@@ -65,8 +65,9 @@ will happen and acts only after you confirm, then reports the result so you can
 check it.
 
 The same goes for email: your assistant can search your whole ITU mailbox, draft a
-message or a reply, for example to an instructor, with attachments, and send it after you
-approve the preview. It can also open an ITU help ticket for you: it finds the right unit
+message, a reply or a forward, for example to an instructor, with attachments, and send it
+after you approve the preview, or save it to your Drafts folder so you can finish it in
+webmail. It can also open an ITU help ticket for you: it finds the right unit
 and category, fills in the form and submits it once you approve.
 
 ### Why PaperBridge?

@@ -14,7 +14,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 
 from .env import env_choice, env_switch, load_ninova_env
-from .mail_send import mail_send_enabled
+from .mail_send import mail_drafts_enabled, mail_send_enabled
 from .remote_security import (
     RemoteSecurityMiddleware,
     api_key_required,
@@ -24,6 +24,7 @@ from .remote_security import (
 from .server import (
     LOCAL_TOOL_NAMES,
     HELP_TICKET_WRITE_TOOL_NAMES,
+    MAIL_DRAFT_TOOL_NAMES,
     MAIL_SEND_TOOL_NAMES,
     MAIL_TOOL_NAMES,
     OBS_REGISTRATION_WRITE_TOOL_NAMES,
@@ -82,6 +83,8 @@ def _selected_remote_tool_names() -> list[str]:
     mail_enabled = env_switch("NINOVA_REMOTE_ENABLE_MAIL")
     if mail_enabled and writes_enabled and mail_send_enabled():
         eligible.update(MAIL_SEND_TOOL_NAMES)
+    if mail_enabled and writes_enabled and mail_drafts_enabled():
+        eligible.update(MAIL_DRAFT_TOOL_NAMES)
     if writes_enabled and help_ticket_writes_enabled():
         eligible.update(HELP_TICKET_WRITE_TOOL_NAMES)
     available = [

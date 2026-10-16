@@ -25,6 +25,9 @@ MAX_BODY_CHARS = 50_000
 MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 MAX_ATTACHMENT_WIRE_BYTES = 14 * 1024 * 1024
 MAX_MIME_HEADER_BYTES = 64 * 1024
+# Forwarding reads the whole message: 20 MiB of attachments in base64 plus text.
+MAX_FORWARD_WIRE_BYTES = 28 * 1024 * 1024
+MAX_FORWARD_TEXT_CHARS = 50_000
 MAX_PDF_PAGES = 50
 MAX_IMAGE_PIXELS = 25_000_000
 MAX_IMAGE_DIMENSION = 12_000
@@ -39,6 +42,8 @@ _SENT_NAMES = (
     "Sent", "sent-mail", "Sent Items", "Sent Messages", "INBOX.Sent", "INBOX/Sent",
     "Gönderilmiş Öğeler", "Gönderilenler", "Gönderilmiş",
 )
+# The same fallback for the drafts folder, used only to save a prepared message.
+_DRAFTS_NAMES = ("Drafts", "Draft", "INBOX.Drafts", "INBOX/Drafts", "Taslaklar", "Taslak")
 
 
 def _imap_utf7(value: str) -> str:
@@ -50,6 +55,22 @@ def _imap_utf7(value: str) -> str:
         ).decode("ascii").rstrip("=").replace("/", ",") + "-",
         value,
     )
+
+
+def imap_mailbox_display_name(wire: bytes) -> str:
+    """Turn a quoted modified UTF-7 mailbox name back into readable text."""
+    name = wire[1:-1] if wire.startswith(b'"') and wire.endswith(b'"') else wire
+    text = re.sub(rb"\\(.)", rb"\1", name).decode("utf-8", errors="replace")
+    try:
+        return re.sub(
+            r"&([^-]*)-",
+            lambda m: "&" if not m[1] else base64.b64decode(
+                m[1].replace(",", "/") + "=" * (-len(m[1]) % 4)
+            ).decode("utf-16-be"),
+            text,
+        )
+    except (ValueError, UnicodeDecodeError):
+        return text
 
 
 def _listed_mailbox(row: Any) -> tuple[set[bytes], bytes] | None:
@@ -299,6 +320,50 @@ def _message_body(message: Message, *, max_chars: int) -> tuple[str, list[dict[s
     return body[:max_chars], attachments, truncated
 
 
+def _forward_parts(message: Message) -> tuple[str, list[tuple[str, str, bytes]], int]:
+    """Split a message into its text, its attachments and the inline parts left out.
+
+    A nested message/rfc822 part is kept whole as one attachment. Inline parts
+    without a file name, such as images an HTML body refers to, are only counted.
+    """
+    plain_parts: list[str] = []
+    html_parts: list[str] = []
+    files: list[tuple[str, str, bytes]] = []
+    skipped = 0
+
+    def visit(part: Message) -> None:
+        nonlocal skipped
+        content_type = part.get_content_type().casefold()
+        filename = " ".join(_decode_header_value(part.get_filename(), max_chars=255).split())
+        filename = filename.replace("/", "_").replace("\\", "_")
+        payload = part.get_payload()
+        if content_type == "message/rfc822":
+            if isinstance(payload, list) and payload and isinstance(payload[0], Message):
+                files.append((filename or "forwarded-message.eml", content_type, payload[0].as_bytes()))
+            return
+        if part.is_multipart():
+            for child in payload if isinstance(payload, list) else []:
+                visit(child)
+            return
+        disposition = (part.get_content_disposition() or "").casefold()
+        if disposition == "attachment" or filename:
+            data = part.get_payload(decode=True)
+            if isinstance(data, bytes):
+                files.append((filename or "attachment", content_type, data))
+        elif content_type == "text/plain":
+            plain_parts.append(_part_text(part))
+        elif content_type == "text/html":
+            parser = _TextOnlyHtmlParser()
+            parser.feed(_part_text(part))
+            parser.close()
+            html_parts.append(parser.text())
+        else:
+            skipped += 1
+
+    visit(message)
+    return _clean_body_text("\n\n".join(plain_parts or html_parts)), files, skipped
+
+
 def _image_dimensions(data: bytes, content_type: str) -> tuple[int, int]:
     if content_type == "image/png":
         if len(data) < 24 or not data.startswith(b"\x89PNG\r\n\x1a\n"):
@@ -539,24 +604,37 @@ class ItuMailClient:
     @staticmethod
     def _sent_mailbox(connection: Any) -> bytes:
         """Discover the existing sent folder and return its quoted wire name."""
+        return ItuMailClient._role_mailbox(connection, b"\\sent", _SENT_NAMES,
+                                           "NINOVA_MAIL_SENT_MAILBOX", "sent")
+
+    @staticmethod
+    def _drafts_mailbox(connection: Any) -> bytes:
+        """Discover the existing drafts folder and return its quoted wire name."""
+        return ItuMailClient._role_mailbox(connection, b"\\drafts", _DRAFTS_NAMES,
+                                           "NINOVA_MAIL_DRAFTS_MAILBOX", "drafts")
+
+    @staticmethod
+    def _role_mailbox(connection: Any, flag: bytes, conventional: tuple[str, ...],
+                      variable: str, label: str) -> bytes:
+        """Find one existing folder by its SPECIAL-USE flag or name; never create it."""
         status, data = connection.list('""', '"*"')
         if status != "OK":
-            raise ItuMailError("İTÜ Mail could not discover the sent mailbox.")
+            raise ItuMailError(f"İTÜ Mail could not discover the {label} mailbox.")
         entries = [parsed for row in data or [] if (parsed := _listed_mailbox(row))
                    and b"\\noselect" not in parsed[0]]
-        configured = (os.getenv("NINOVA_MAIL_SENT_MAILBOX") or "").strip()
+        configured = (os.getenv(variable) or "").strip()
         if configured:
             names = {_imap_utf7(configured).encode("ascii"), configured.encode("utf-8")}
             candidates = {name for _, name in entries if name in names}
         else:
-            candidates = {name for flags, name in entries if b"\\sent" in flags}
+            candidates = {name for flags, name in entries if flag in flags}
             if not candidates:
-                names = {_imap_utf7(name).encode("ascii").lower() for name in _SENT_NAMES}
+                names = {_imap_utf7(name).encode("ascii").lower() for name in conventional}
                 candidates = {name for _, name in entries if name.lower() in names}
         if len(candidates) != 1:
             raise ItuMailError(
-                "The sent mailbox is missing or ambiguous. Set NINOVA_MAIL_SENT_MAILBOX "
-                "to the existing sent folder name. The inbox was not used as a substitute."
+                f"The {label} mailbox is missing or ambiguous. Set {variable} "
+                f"to the existing {label} folder name. The inbox was not used as a substitute."
             )
         name = candidates.pop()
         return b'"' + name.replace(b"\\", b"\\\\").replace(b'"', b'\\"') + b'"'
@@ -790,6 +868,47 @@ class ItuMailClient:
             name: _decode_header_value(message.get(header), max_chars=4_000)
             for name, header in (("from", "From"), ("reply_to", "Reply-To"), ("subject", "Subject"),
                                  ("message_id", "Message-ID"), ("references", "References"))
+        }
+
+    def forward_source(self, uid: str, mailbox: str = "INBOX") -> dict[str, Any]:
+        """Read one whole message for forwarding without changing its flags."""
+        mailbox = _mailbox_role(mailbox)
+        uid = str(uid).strip()
+        if not re.fullmatch(r"[1-9][0-9]{0,19}", uid):
+            raise ItuMailError("Message UID must be a positive integer returned by a mail listing.")
+        too_large = (f"That message is larger than {MAX_FORWARD_WIRE_BYTES // (1024 * 1024)} MiB "
+                     "and cannot be forwarded from here.")
+        with self._connection() as connection:
+            self._select_mailbox(connection, mailbox)
+            status, data = connection.uid("FETCH", uid, "(UID RFC822.SIZE)")
+            metadata = b" ".join(item for item in data or [] if isinstance(item, bytes))
+            size = _metadata_number(metadata, b"RFC822.SIZE") if status == "OK" else None
+            if size is None:
+                raise ItuMailError(f"No message with that UID was found in {mailbox}.")
+            if size > MAX_FORWARD_WIRE_BYTES:
+                raise ItuMailError(too_large)
+            status, data = connection.uid(
+                "FETCH", uid, f"(UID BODY.PEEK[]<0.{MAX_FORWARD_WIRE_BYTES + 1}>)",
+            )
+            if status != "OK":
+                raise ItuMailError("İTÜ Mail could not fetch that message UID.")
+            _, raw_message = _payload_tuple(data)
+        if len(raw_message) > MAX_FORWARD_WIRE_BYTES:
+            raise ItuMailError(too_large)
+
+        message = message_from_bytes(raw_message, policy=policy.default)
+        try:
+            text, files, skipped = _forward_parts(message)
+        except Exception as exc:
+            raise ItuMailError("That message could not be parsed safely for forwarding.") from exc
+        return {
+            "mailbox": mailbox,
+            "uid": uid,
+            **_message_headers(message),
+            "body_text": text[:MAX_FORWARD_TEXT_CHARS],
+            "body_truncated": len(text) > MAX_FORWARD_TEXT_CHARS,
+            "attachments": files,
+            "skipped_inline_parts": skipped,
         }
 
     def get_attachment(
