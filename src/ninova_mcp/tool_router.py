@@ -14,8 +14,11 @@ private FastMCP ``ToolManager`` and are reached through two public tools:
 
 Ranking is deterministic BM25 over each operation's name, title, description
 and Turkish/English keywords, with Turkish characters folded to ASCII and
-common Turkish suffixes stripped. The model makes the final choice from the
-returned candidates.
+common Turkish suffixes stripped. Each operation has an effect, read or write;
+unless the query asks for a change, reads rank above writes. When the best match
+covers too little of the query, the result says so (``exact_match: false`` and
+``missing_capability``) rather than offering only loosely related tools. The
+model makes the final choice from the returned candidates.
 
 Tools that change data or local state, mail tools, tools that render their
 own UI and a few frequent fast paths are never routed: they stay published
@@ -33,7 +36,7 @@ from collections import Counter
 from collections.abc import Iterable
 from typing import Any
 
-from .tool_catalog import DOMAINS, KEYWORDS, REQUIRED_ONE_OF, TOOL_DOMAIN
+from .tool_catalog import DOMAINS, EFFECTS, KEYWORDS, REQUIRED_ONE_OF, TOOL_DOMAIN, effect
 
 PROFILE_ENV = "ITU_MCP_TOOL_PROFILE"
 FULL_PROFILE = "full"
@@ -72,6 +75,10 @@ _TOKEN = re.compile(r"[a-z0-9]+")
 _STOPWORD_TEXT = (
     "a an and are be by do for from get how i in is it list me my of on or show "
     "the this to what when where which who with "
+    # Scope words say how much to search, not what.
+    "about across all any anything can every everything over please you your "
+    "did does has have was were "
+    "butun her hepsi tum "
     "acaba bana beni bu bunu bir da de en gibi hangi icin ile kac mi mu mı ne neler "
     "nedir nerede o olan şey şu var ve veya ya "
     # Question particles carry no topic.
@@ -89,6 +96,30 @@ _SUFFIXES = tuple(sorted({
 }, key=len, reverse=True))
 _MIN_STEM = 3
 _MAX_SUFFIX_PASSES = 3
+# Below this IDF-weighted share of the query's catalog words that the best
+# match covers, the request is treated as one no operation offers. Words the
+# catalog never uses (names, course codes, topics) do not count either way.
+MIN_COVERAGE = 0.4
+MAX_MISSING_WORDS = 8
+
+# Requests to change something, matched on folded text. Past and passive forms
+# ("gönderilen", "gönderdiğim", "yüklendi mi") and questions about a reply are
+# reads, so only imperative and future forms count.
+_WRITE_INTENT = re.compile(
+    r"\b(?:send|submit|upload|save|forward|compose|create|apply|cancel|delete|renew|reserve"
+    r"|register|enroll)\b|\brezerv(?:e|asyon)\s+(?:et|yap)\w*|\bayirt\w*"
+    r"|\b(?:reply|respond|write)\s+(?:to|an?|back)\b|\bopen\s+an?\s+(?:help\s+)?ticket"
+    r"|\bgonder(?!il|d|mis)\w*|\byolla(?!n|d)\w*|\byaz(?:\b|in\b|ar\s+mi|alim)"
+    r"|\b(?:yanitla|cevapla)(?!n|d)\w*|\bilet(?:\b|ir\b|elim|in\b)|\byonlendir(?!il|d)\w*"
+    r"|\byukle(?!n|d|mis)\w*|\bkaydet(?!ti|il|mis)\w*|\bolustur(?!ul|d)\w*|\bkaydol\w*"
+    r"|\bteslim\s+e[dt](?!il|ti)\w*|\b(?:mail|e-?posta|mesaj)\w*\s+at\b"
+    r"|\b(?:bilet|talep)\w*\s+ac\b|\bsikayet\s+et\w*"
+)
+# Talk about write permissions, or an explicit read-only request, is not a write.
+_READ_ONLY_TALK = re.compile(
+    r"\bread[- ]only\b|\bsalt\s+okunur\b"
+    r"|\b(?:write|writing|yazma)\s+(?:capabilit|permission|access|action|izin|yetki)\w*"
+)
 
 
 def selected_profile(env: dict[str, str] | None = None) -> str:
@@ -150,6 +181,22 @@ def tokenize(text: str) -> list[str]:
         if stem != token:
             tokens.append(stem)
     return tokens
+
+
+def has_write_intent(query: str) -> bool:
+    """Whether the request asks to send, submit, save or otherwise change data."""
+    text = _READ_ONLY_TALK.sub(" ", fold(query))
+    return bool(_WRITE_INTENT.search(text))
+
+
+def query_words(query: str) -> list[tuple[str, frozenset[str]]]:
+    """The query's content words, each with the index terms it can match."""
+    words: dict[str, frozenset[str]] = {}
+    for word in _TOKEN.findall(fold(query)):
+        terms = tokenize(word)
+        if terms and word not in words:
+            words[word] = frozenset(terms)
+    return list(words.items())
 
 
 def _summary(description: str, limit: int = 160) -> str:
@@ -222,6 +269,21 @@ class OperationIndex:
         results.sort(key=lambda item: (-item[1], item[0]))
         return results
 
+    def uncovered(self, name: str, words: list[tuple[str, frozenset[str]]]) -> list[str]:
+        """The query words that operation ``name`` does not match at all."""
+        counts = self._terms.get(name, Counter())
+        return [word for word, terms in words if not any(counts.get(term) for term in terms)]
+
+    def coverage(self, name: str, words: list[tuple[str, frozenset[str]]]) -> float:
+        """IDF-weighted share of the query's catalog words that ``name`` matches."""
+        counts = self._terms.get(name, Counter())
+        known = [terms for word, terms in words
+                 if any(term in self._idf for term in terms) and not any(char.isdigit() for char in word)]
+        weights = [(max(self._idf.get(term, 0.0) for term in terms),
+                    any(counts.get(term) for term in terms)) for terms in known]
+        total = sum(weight for weight, _ in weights)
+        return sum(weight for weight, hit in weights if hit) / total if total else 1.0
+
 
 class ToolRouter:
     """Backs ``itu_find_tool`` and ``itu_call`` for one server instance."""
@@ -247,6 +309,7 @@ class ToolRouter:
             "summary": _summary(meta.get("description") or meta.get("title") or ""),
             # A published tool is called by its own name, never through itu_call.
             "call_with": CALL_TOOL_NAME if name in self.routed_names else name,
+            "effect": effect(name),
         }
         if with_schema:
             entry["input_schema"] = compact_schema(meta.get("input_schema") or {})
@@ -281,26 +344,38 @@ class ToolRouter:
             if any(name in available for name in names)
         ]
 
-    def find(self, query: str = "", domain: str = "", limit: int = DEFAULT_FIND_LIMIT) -> dict[str, Any]:
+    def find(self, query: str = "", domain: str = "", limit: int = DEFAULT_FIND_LIMIT,
+             effect_filter: str = "") -> dict[str, Any]:
         query = (query or "").strip()
         domain = (domain or "").strip().lower()
+        effect_filter = (effect_filter or "").strip().lower()
         limit = max(1, min(int(limit or DEFAULT_FIND_LIMIT), MAX_FIND_LIMIT))
         if domain and domain not in DOMAINS:
             return {"error": "unknown_domain", "domains": self.domains()}
+        if effect_filter and effect_filter not in EFFECTS:
+            return {"error": "unknown_effect", "effects": list(EFFECTS)}
         if not query and not domain:
             return {"domains": self.domains(),
                     "hint": "Pass a domain to list its operations, or a query to rank them."}
         if not query:
-            names = [name for name in DOMAINS[domain][1] if name in self.operations]
+            names = [name for name in DOMAINS[domain][1] if name in self.operations
+                     and (not effect_filter or effect(name) == effect_filter)]
             return {"domain": domain,
                     "operations": [self._describe(name, with_schema=False) for name in names],
                     "hint": "Search with the chosen operation name to get its input_schema."}
         ranked = self.index.score(query)
         if domain:
             ranked = [item for item in ranked if TOOL_DOMAIN.get(item[0]) == domain]
+        if effect_filter:
+            ranked = [item for item in ranked if effect(item[0]) == effect_filter]
+        write_intent = has_write_intent(query)
+        if not write_intent:
+            # Without a request to change something, reads come first; the sort is stable.
+            ranked.sort(key=lambda item: effect(item[0]) == "write")
         top = ranked[:limit]
         result: dict[str, Any] = {
             "query": query,
+            "write_intent": write_intent,
             "matches": [self._describe(name, with_schema=rank < SCHEMA_MATCHES)
                         for rank, (name, _) in enumerate(top)],
         }
@@ -308,6 +383,32 @@ class ToolRouter:
             result["ambiguous"] = True
             result["hint"] = ("Top matches score closely; compare their summaries. Search an "
                               "operation's exact name to get its input_schema.")
+        # "read-only" or "write permissions" say which effect is wanted, not what to do.
+        words = query_words(_READ_ONLY_TALK.sub(" ", fold(query)))
+        exact_name = bool(top) and fold(query).strip().replace(" ", "_") == top[0][0]
+        missing: list[str] = []
+        if not top:
+            missing = [word for word, _ in words]
+            result["exact_match"] = False
+        elif exact_name:
+            result["exact_match"] = True
+        else:
+            missing = self.index.uncovered(top[0][0], words)
+            result["exact_match"] = self.index.coverage(top[0][0], words) >= MIN_COVERAGE
+        shown = " ".join(missing[:MAX_MISSING_WORDS]) or query
+        if top and missing:
+            result["unmatched_terms"] = missing[:MAX_MISSING_WORDS]
+        if write_intent and top and not any(effect(name) == "write" for name, _ in top):
+            result["exact_match"] = False
+            result["missing_capability"] = (
+                "The request asks to change something, but no matching operation does; the "
+                "matches only read. Tell the user this action is not available here."
+            )
+        elif not result["exact_match"]:
+            result["missing_capability"] = (
+                f"No operation covers '{shown}'. Any matches are only loosely related: tell the "
+                "user this is not available rather than presenting them as the answer."
+            )
         if not top:
             result["domains"] = self.domains()
             result["hint"] = "No match. Rephrase in English or Turkish, or browse a domain."
@@ -375,8 +476,11 @@ FIND_TOOL_DESCRIPTION = (
     "Find the ITU operation for a request and get its input schema. Use it when no published "
     "tool fits and the itu_call operation index does not make the choice and arguments clear. "
     "Pass `query` with the user's intent (Turkish or English, e.g. 'OBS official letter grades' "
-    "or 'yemekhane menüsü'); optionally `domain` to narrow it. With only `domain`, lists that "
-    "domain's operations. Then run the chosen operation with itu_call. Domains: "
+    "or 'yemekhane menüsü'); optionally `domain` to narrow it and `effect` ('read' or 'write'). "
+    "With only `domain`, lists that domain's operations. Each match carries its effect; reads "
+    "rank above writes unless the request asks to change something. When exact_match is false, "
+    "missing_capability says what no operation covers: tell the user instead of using a loosely "
+    "related match. Then run the chosen operation with itu_call. Domains: "
     + ", ".join(DOMAINS)
     + "."
 )

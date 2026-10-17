@@ -13,7 +13,7 @@ import threading
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated, Any, Callable
+from typing import Annotated, Any, Callable, Literal
 from urllib.parse import urlparse
 
 from pydantic import Field, StrictBool
@@ -4346,7 +4346,8 @@ TOOLS: list[dict[str, Any]] = [
             "whether it is configured, its status (ok, authentication_failed, unreachable, "
             "timeout, skipped, not_configured) and latency. Also reports which write actions the "
             "operator enabled (assignment uploads, OBS draft saves, mail sending and drafts, help "
-            "tickets, remote writes), the server version and commit, and the tool profile. "
+            "tickets, remote writes), remote API-key and rate-limit protection, the server version "
+            "and commit, and the tool profile. "
             "Checks run concurrently with a short deadline. Use it when the user asks whether the "
             "connector works or a tool keeps failing."
         ),
@@ -6798,9 +6799,14 @@ def _register_router_tools(mcp: Any, router: ToolRouter) -> None:
         query: Annotated[str, Field(description="The user's intent in Turkish or English.")] = "",
         domain: Annotated[str, Field(description="Optional domain to list or narrow to.")] = "",
         limit: Annotated[int, Field(ge=1, le=MAX_FIND_LIMIT)] = DEFAULT_FIND_LIMIT,
+        effect: Annotated[
+            Literal["", "read", "write"],
+            Field(description="Optional: 'read' for operations that only read, 'write' for ones "
+                              "that change data."),
+        ] = "",
     ) -> dict[str, Any]:
         started = time.monotonic()
-        result = router.find(query, domain, limit)
+        result = router.find(query, domain, limit, effect)
         record_tool_call(FIND_TOOL_NAME, started, result, False)
         return result
 

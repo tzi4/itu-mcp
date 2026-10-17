@@ -171,7 +171,13 @@ tools instead:
 - `itu_find_tool` lists a domain (`ninova`, `obs`, `registration`, `portal`,
   `planning`, `public`, `campus`, `library`, `archive`, `papers`, ...) or ranks
   operations for a Turkish or English query. The two best matches include their full
-  input schema.
+  input schema. Every match carries its `effect`, `read` or `write`, and `effect`
+  narrows a search to one of them. Unless the query asks to send, submit, save or
+  otherwise change something, read operations rank above write operations. When the
+  best match covers little of the query, the result has `exact_match: false` and a short
+  `missing_capability` note, so the model can say an action is not offered instead of
+  using a loosely related tool; `unmatched_terms` lists the query words the best match
+  does not cover.
 
 Write actions, tools that store files on the server, mail tools, page-view tools and a
 few frequent entry points (`get_dashboard`, `list_courses`, `get_course_overview`,

@@ -207,6 +207,8 @@ def build_app() -> Starlette:
     mcp = _build_fastmcp(app_logic, mount_path=mcp_mount_path)
     api_key = configured_api_key()
     rate_limiter = build_rate_limiter_from_env()
+    app_logic.remote_security = {"api_key_required": api_key_required(),
+                                 "rate_limit_enabled": rate_limiter is not None}
 
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette):

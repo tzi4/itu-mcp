@@ -213,6 +213,8 @@ def health_report(app: Any, *, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
         "commit": commit[:7] if commit else None,
         "tool_profile": profile,
         "transport": "remote" if remote else "local",
+        # API-key and rate-limit protection apply to the remote HTTP transport only.
+        "remote_security": getattr(app, "remote_security", None) if remote else None,
         "timeout_seconds": timeout,
     }
     notice = update_check.cached_notice(app.state_dir)

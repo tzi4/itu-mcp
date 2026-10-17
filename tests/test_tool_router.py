@@ -15,11 +15,11 @@ from mcp.server.fastmcp import FastMCP  # noqa: E402
 
 from ninova_mcp import server  # noqa: E402
 from ninova_mcp.tool_catalog import (  # noqa: E402
-    DOMAINS, KEYWORDS, REQUIRED_ONE_OF, TOOL_DOMAIN,
+    DOMAINS, KEYWORDS, REQUIRED_ONE_OF, TOOL_DOMAIN, WRITE_OPERATIONS, effect,
 )
 from ninova_mcp.tool_router import (  # noqa: E402
     CALL_TOOL_NAME, FAST_PATH_TOOL_NAMES, FIND_TOOL_NAME, PROFILE_ENV, fold,
-    selected_profile, tokenize,
+    has_write_intent, selected_profile, tokenize,
 )
 
 
@@ -48,6 +48,17 @@ class CatalogTests(unittest.TestCase):
 
     def test_keywords_name_known_tools(self) -> None:
         self.assertLessEqual(set(KEYWORDS), set(TOOL_DOMAIN))
+
+    def test_write_effects_match_the_server_safety_sets(self) -> None:
+        self.assertLessEqual(WRITE_OPERATIONS, set(server.LOCAL_TOOL_NAMES))
+        # Every write stays published for per-call confirmation, never behind itu_call.
+        self.assertLessEqual(WRITE_OPERATIONS, server.STATEFUL_TOOL_NAMES)
+        self.assertLessEqual(set(server.DESTRUCTIVE_TOOL_NAMES), WRITE_OPERATIONS)
+        for name in (server.MAIL_SEND_TOOL_NAMES | server.MAIL_DRAFT_TOOL_NAMES
+                     | server.HELP_TICKET_WRITE_TOOL_NAMES | server.OBS_REGISTRATION_WRITE_TOOL_NAMES):
+            self.assertEqual(effect(name), "write", name)
+        for name in ("mail_get_thread", "itu_health", "download_resource", "refresh_session"):
+            self.assertEqual(effect(name), "read", name)
 
     def test_required_choices_name_optional_parameters(self) -> None:
         mcp = FastMCP("test")
@@ -185,6 +196,96 @@ class RankingTests(unittest.TestCase):
     def test_empty_request_lists_domains(self) -> None:
         listed = _call(self.mcp, FIND_TOOL_NAME, {})
         self.assertIn("obs", [entry["domain"] for entry in listed["domains"]])
+
+
+class IntentTests(unittest.TestCase):
+    def test_write_intent(self) -> None:
+        for query in ("send an email to my instructor", "hocama mail at", "ödev teslim et",
+                      "bu dosyayı yükle", "maili gönder", "open a help ticket",
+                      "kitabı ayırt", "renew my library book"):
+            with self.subTest(query=query):
+                self.assertTrue(has_write_intent(query))
+        for query in ("gönderdiğim mailler", "gönderilen mailler", "ödevin teslim tarihi",
+                      "did my instructor reply", "hocam cevap yazdı mı", "iletişim bilgilerim",
+                      "show the write capability of all services", "read-only global search",
+                      "dosya yüklendi mi", "bildirimlerim"):
+            with self.subTest(query=query):
+                self.assertFalse(has_write_intent(query))
+
+
+class EffectRankingTests(unittest.TestCase):
+    HEALTH = "show health, auth, latency, rate-limit and write capability of all services"
+    GLOBAL_SEARCH = "read-only global search over every service"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.mcp = _build("router")
+
+    def find(self, **arguments) -> dict:
+        return _call(self.mcp, FIND_TOOL_NAME, arguments)
+
+    def test_health_query_finds_the_health_check_not_fill_rate(self) -> None:
+        # "rate" once ranked archive_fill_rate first.
+        found = self.find(query=self.HEALTH)
+        names = [match["operation"] for match in found["matches"]]
+        self.assertEqual(names[0], "itu_health")
+        self.assertTrue(found["exact_match"])
+        self.assertFalse(found["write_intent"])
+        self.assertFalse(WRITE_OPERATIONS & set(names))
+
+    def test_read_only_global_search_lists_no_write_tools(self) -> None:
+        # This query once surfaced mail_prepare_message and mail_send_message.
+        found = self.find(query=self.GLOBAL_SEARCH, limit=10)
+        names = [match["operation"] for match in found["matches"]]
+        self.assertGreaterEqual(len(names), 6)
+        self.assertFalse(WRITE_OPERATIONS & set(names[:6]))
+        effects = [match["effect"] for match in found["matches"]]
+        self.assertEqual(effects, sorted(effects))  # any write comes after every read
+        self.assertIn("global", found["unmatched_terms"])
+
+    def test_reads_rank_above_writes_without_write_intent(self) -> None:
+        for query in ("did my instructor reply", "search all messages and attachments from my instructor",
+                      "find everything mentioning the lab report in mail and Ninova"):
+            with self.subTest(query=query):
+                effects = [match["effect"] for match in self.find(query=query, limit=10)["matches"]]
+                self.assertEqual(effects, sorted(effects))  # "read" < "write"
+        found = self.find(query="did my instructor reply")
+        self.assertEqual(found["matches"][0]["operation"], "mail_get_thread")
+
+    def test_write_intent_keeps_write_tools_first(self) -> None:
+        found = self.find(query="send an email to my instructor")
+        self.assertTrue(found["write_intent"])
+        self.assertEqual(found["matches"][0]["effect"], "write")
+        self.assertTrue(found["exact_match"])
+
+    def test_effect_filter(self) -> None:
+        for wanted in ("read", "write"):
+            with self.subTest(effect=wanted):
+                found = self.find(query="mail", effect=wanted, limit=10)
+                self.assertTrue(found["matches"])
+                self.assertEqual({match["effect"] for match in found["matches"]}, {wanted})
+        listed = self.find(domain="mail", effect="write")
+        self.assertEqual({op["operation"] for op in listed["operations"]},
+                         {"mail_prepare_message", "mail_send_message", "mail_save_draft"})
+        router = server.ToolRouter(mock.Mock(list_tools=lambda: []), {})
+        self.assertEqual(router.find("mail", effect_filter="delete")["error"], "unknown_effect")
+
+    def test_weak_match_reports_a_missing_capability(self) -> None:
+        for query in ("what is the weather in Istanbul", "rezervasyon yap spor salonu",
+                      "renew my library book"):
+            with self.subTest(query=query):
+                found = self.find(query=query)
+                self.assertFalse(found["exact_match"])
+                self.assertIn("missing_capability", found)
+        for query in RankingTests.CASES:
+            with self.subTest(query=query):
+                found = self.find(query=query)
+                self.assertTrue(found["exact_match"])
+                self.assertNotIn("missing_capability", found)
+
+    def test_ranking_is_deterministic(self) -> None:
+        for query in (self.HEALTH, self.GLOBAL_SEARCH, "hocama mail at"):
+            self.assertEqual(self.find(query=query), self.find(query=query))
 
 
 class CallTests(unittest.TestCase):

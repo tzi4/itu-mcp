@@ -1,4 +1,4 @@
-"""Routing metadata for every tool: its domain and search keywords.
+"""Routing metadata for every tool: its domain, effect and search keywords.
 
 Domain names deliberately match the upstream ``toolsets`` groups (plus
 ``papers`` for PaperBridge) so the same vocabulary works in both projects.
@@ -108,6 +108,23 @@ TOOL_DOMAIN: dict[str, str] = {
     tool: domain for domain, (_, tools) in DOMAINS.items() for tool in tools
 }
 
+# Operations that change the user's data in an ITU service, or prepare such a
+# change for confirmation. Everything else reads; a read may still cache or
+# save a file locally. ``tests/test_tool_router.py`` checks this against the
+# server's stateful and destructive tool sets.
+WRITE_OPERATIONS: frozenset[str] = frozenset({
+    "submit_assignment",
+    "obs_save_registration_draft",
+    "mail_prepare_message", "mail_send_message", "mail_save_draft",
+    "help_prepare_ticket", "help_submit_ticket",
+})
+EFFECTS = ("read", "write")
+
+
+def effect(name: str) -> str:
+    """``write`` for an operation that changes ITU data, otherwise ``read``."""
+    return "write" if name in WRITE_OPERATIONS else "read"
+
 # Extra search words per tool, Turkish first. Names, titles and descriptions
 # are indexed as well, so list only what a student would type but the
 # description does not already say.
@@ -115,7 +132,7 @@ KEYWORDS: dict[str, str] = {
     "auth_status": "giriş durumu oturum login kontrol",
     "refresh_session": "oturumu yenile tekrar giriş",
     "obs_auth_status": "obs giriş durumu",
-    "itu_health": "sağlık durumu servisler çalışıyor mu erişilebilir mi gecikme yazma izinleri sürüm health status latency reachable uptime write capability version",
+    "itu_health": "sağlık durumu servisler çalışıyor mu erişilebilir mi gecikme yazma izinleri sürüm giriş health status latency reachable uptime write capability version auth rate limit",
     "get_dashboard": "genel durum özet ana sayfa derslerim ödevlerim duyurular overview",
     "list_courses": "derslerim ders listesi kayıtlı olduğum dersler ninova dersleri",
     "get_course_announcements": "ders duyurusu duyurular hoca duyurusu",
@@ -212,14 +229,14 @@ KEYWORDS: dict[str, str] = {
     "hocametre_instructor": "hocametre notkutusu hoca yorumları hocası nasıl hoca puanı değerlendirme iyi mi not veriyor mu yoklama alıyor mu",
     "hocametre_course_sections": "hocametre notkutusu hangi hocadan almalıyım hangi şube hoca seçimi şubeleri hocalara göre karşılaştır hoca puanları crn pick choose best instructor section rating",
     "mail_status": "mail durumu okunmamış sayısı",
-    "mail_list_inbox": "gelen kutusu maillerim e-postalar okunmamış",
+    "mail_list_inbox": "gelen kutusu maillerim e-postalar okunmamış email inbox",
     "mail_list_sent": "gönderilen mailler giden kutusu",
     "mail_get_message": "maili oku e-posta içeriği",
-    "mail_get_thread": "mail yazışması konuşma zinciri cevap geldi mi yanıt verdi mi hoca cevap yazdı mı thread reply conversation",
+    "mail_get_thread": "mail yazışması konuşma zinciri cevap geldi mi yanıt verdi mi hoca cevap yazdı mı thread reply conversation replied answered answer email instructor",
     "mail_get_attachment": "mail eki ek dosya",
-    "mail_search": "mail ara eski mailler e-posta arama kimden gelen",
-    "mail_prepare_message": "mail yaz e-posta taslağı hocaya mail at yanıtla cevap ver maili ilet yönlendir forward",
-    "mail_send_message": "maili gönder e-posta gönder onayla",
+    "mail_search": "mail ara eski mailler e-posta arama kimden gelen email find",
+    "mail_prepare_message": "mail yaz e-posta taslağı hocaya mail at yanıtla cevap ver maili ilet yönlendir forward email write compose instructor lecturer",
+    "mail_send_message": "maili gönder e-posta gönder onayla email send",
     "mail_save_draft": "taslağa kaydet taslaklar taslak olarak kaydet göndermeden kaydet webmail",
     "papers_search": "makale ara akademik yayın literatür article paper",
     "papers_resolve": "doi makale bul",

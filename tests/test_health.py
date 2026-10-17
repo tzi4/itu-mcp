@@ -72,6 +72,7 @@ class HealthTests(unittest.TestCase):
         self.assertEqual(report["commit"], "aaaaaaa")
         self.assertEqual(report["tool_profile"], "router")
         self.assertEqual(report["transport"], "local")
+        self.assertIsNone(report["remote_security"])
         self.app.client.ensure_logged_in.assert_called_once_with(verify=True)
 
     def test_report_has_no_secrets_paths_or_cookie_names(self) -> None:
