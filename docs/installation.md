@@ -97,8 +97,9 @@ Environment variables change the defaults: `ITU_MCP_REF`, `ITU_MCP_SERVICE`,
 `sudo ITU_MCP_PORT=8100 sh install-server.sh`.
 
 The service listens on the loopback interface only. To use it from ChatGPT or
-Claude.ai, you need your own HTTPS endpoint in front of it, for example a tunnel
-service or a reverse proxy with a certificate, and then:
+Claude.ai, follow [Using it from your phone and the web](remote-access.md): either
+OpenAI Secure MCP Tunnel, or your own HTTPS endpoint in front of it, for example a
+tunnel service or a reverse proxy with a certificate. For your own endpoint:
 
 1. Set `NINOVA_PUBLIC_BASE_URL` and `NINOVA_ALLOWED_HOSTS` in the env file
    (`sudo nano /etc/itu-mcp-paperbridge/env`) and restart the service with

@@ -234,28 +234,38 @@ powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/tzi
 
 At the end it asks for your ITU login, with the password hidden, and keeps it in a
 private file on your computer (`~/.itu-mcp/.env`), never in a client config. Then
-it offers to add the server to Claude Desktop, Cursor or Codex if it finds them,
-and prints the `claude mcp add` command for Claude Code. Leave the login empty if
-you only want the public tools.
+it offers to add the server to the AI apps it finds on your computer, and prints
+the `claude mcp add` command for Claude Code. Leave the login empty if you only
+want the public tools.
 
 You only do this once. Restart your AI app afterwards; from then on the app starts
 the server by itself whenever it needs it, so there is nothing to run after you
 restart your computer.
 
-**Which apps?** On your computer the server works with apps that start it
-themselves: Claude Desktop (in its chat), Claude Code (also in Claude Desktop's
-Code tab), Codex and Cursor. ChatGPT, on the web, in its desktop app and on your
-phone, connects to MCP servers only by URL, so it cannot start a program on your
-computer. To use ChatGPT, or any assistant on your phone, run the server on an
-always-on machine with your own HTTPS address. That is how I use it, from my
-Raspberry Pi: `scripts/install-server.sh` sets up the systemd service, and the
-[installation guide](docs/installation.md#on-a-linux-server) covers the HTTPS part.
+To use it from ChatGPT on the web or your phone, or from Claude on claude.ai or your
+phone, the AI service has to reach the server over the internet. See
+[Good to know](#good-to-know-chatgpt-and-claude) and the step-by-step guide
+[Using it from your phone and the web](docs/remote-access.md).
 
 Updating is one command too: `itu-mcp --update` on a computer, or the same install
 command again on Windows or a server. When there is an update, your assistant tells
 you with the exact command for your install: once when it is found, then at most
 every three days until you update. The server checks GitHub at most once a day, and
 `ITU_MCP_UPDATE_CHECK=0` turns that off.
+
+### Good to know: ChatGPT and Claude
+
+The server works with any AI assistant that supports MCP. ChatGPT and Claude
+connect to it differently:
+
+| | Installed on your computer | Running on a server |
+|:---|---|---|
+| **Claude** | Claude Desktop's chat and Claude Code start it themselves. Cowork and claude.ai don't use servers on your computer. | A custom connector with your HTTPS address and API key works on claude.ai, Claude Desktop, Cowork and the phone apps. |
+| **ChatGPT** | The desktop app can start local servers (Settings → MCP servers). I haven't tried this yet. | The web and phone apps connect by URL or through OpenAI's Secure MCP Tunnel, which is how I connect to my Pi. |
+
+A server keeps running on its own and also answers while your computer is off. I use
+ChatGPT on the web and my phone through Secure MCP Tunnel to my Raspberry Pi, and
+Claude Code on my computer.
 
 **The `itu-mcp` package on PyPI and the older upstream packages are not
 distributions of this fork.** The [installation guide](docs/installation.md) covers
@@ -265,7 +275,7 @@ the server setup, manual installs from source and other clients.
 
 ```mermaid
 graph LR
-    client["ChatGPT, Claude, Cursor, Codex"] -->|"MCP"| server["ITU MCP + PaperBridge"]
+    client["ChatGPT, Claude or another AI assistant"] -->|"MCP"| server["ITU MCP + PaperBridge"]
     server --> itu["Ninova / OBS / Portal / campus / mail"]
     server --> pb["PaperBridge"]
     pb --> metadata["Crossref / Unpaywall"]
