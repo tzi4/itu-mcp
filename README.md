@@ -275,13 +275,17 @@ the server setup, manual installs from source and other clients.
 
 ```mermaid
 graph LR
-    client["ChatGPT, Claude or another AI assistant"] -->|"MCP"| server["ITU MCP + PaperBridge"]
-    server --> itu["Ninova / OBS / Portal / campus / mail"]
-    server --> pb["PaperBridge"]
-    pb --> metadata["Crossref / Unpaywall"]
-    pb --> publishers["IEEE / Springer / OpenAthens publishers (configured access)"]
-    pb --> archive["Your permitted document archive"]
+    client["ChatGPT, Claude or another AI assistant"] <-->|"MCP calls / results"| server["ITU MCP + PaperBridge"]
+    server <--> itu["Ninova / OBS / Portal / campus / mail"]
+    server <--> pb["PaperBridge"]
+    pb <--> metadata["Crossref / Unpaywall"]
+    pb <--> publishers["IEEE / Springer / OpenAthens publishers (configured access)"]
+    pb <--> archive["Your permitted document archive"]
 ```
+
+Your assistant calls tools through MCP and receives the results back in its
+conversation context. PaperBridge can return paper metadata and retrieved document
+text for the assistant to use in its answer or the next research step.
 
 Local clients connect to `itu-mcp` over stdio. Remote clients such as ChatGPT
 need `itu-mcp-remote`, your own HTTPS endpoint, authentication and a tool
