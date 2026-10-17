@@ -39,6 +39,7 @@ from .papers_client import PAPER_INSTRUCTIONS, PAPER_TOOLS, PapersClient
 from .parsing import (
     SnapshotReference,
     compare_snapshot_payloads,
+    content_area_is_empty,
     extension_allowed,
     extract_announcement_detail,
     extract_announcements_list,
@@ -50,12 +51,14 @@ from .parsing import (
     extract_course_sections,
     extract_gradebook,
     extract_course_info,
+    extract_left_courses,
     extract_file_directory,
     extract_message_board,
     extract_message_thread_detail,
     extract_remote_learning,
     is_internal_ninova_url,
     make_snapshot_payload,
+    message_thread_id,
     match_upload_slot,
     ninova_datetime_iso,
     normalize_lookup_text,
@@ -708,6 +711,13 @@ class NinovaMcpApp:
         resolved = self._resolve_course(course)
         html, response = self.client.get_html(resolved["url"] + "/Notlar")
         payload = extract_gradebook(html, response.url, base_url=self.client.base_url)
+        # Show each item's weight and class statistics next to its score.
+        statistics = {item["index"]: item for item in payload.pop("statistics", [])}
+        payload["grades"] = [
+            {**grade, **{key: value for key, value in statistics.get(index, {}).items()
+                         if key not in {"index", "title"}}}
+            for index, grade in enumerate(payload["grades"])
+        ]
         payload["course"] = resolved
         return payload
 
@@ -720,14 +730,67 @@ class NinovaMcpApp:
         resolved = self._resolve_course(course)
         html, response = self.client.get_html(resolved["url"] + "/MesajPanosu")
         payload = extract_message_board(html, response.url, base_url=self.client.base_url)
-        topics = payload["topics"][: max(1, min(limit, 200))]
+        topics = [{"thread_id": message_thread_id(item.get("url")), **item}
+                  for item in payload["topics"][: max(1, min(limit, 200))]]
         if include_thread_details:
             topics = [self._merge_message_thread_detail(item) for item in topics]
         return {
             "course": resolved,
             "count": len(topics),
             "topics": topics,
+            "can_create_topic": payload["can_create_topic"],
         }
+
+    def get_course_message_thread(self, course: str, thread: str) -> dict[str, Any]:
+        resolved = self._resolve_course(course)
+        url = self._resolve_message_thread(resolved, thread)
+        html, response = self.client.get_html(url)
+        if message_thread_id(response.url) != message_thread_id(url):
+            raise NinovaError("Ninova did not open that message thread; it may have been removed.")
+        payload = extract_message_thread_detail(html, response.url, base_url=self.client.base_url)
+        payload["course"] = resolved
+        return payload
+
+    def _resolve_message_thread(self, course: dict[str, Any], thread: str) -> str:
+        """The URL of a topic on ``course``'s board, from its id, URL or exact title."""
+        reference = str(thread or "").strip()
+        board_url = course["url"] + "/MesajPanosu"
+        if not reference:
+            raise NinovaError("thread must be a topic id, topic URL or exact topic title.")
+        if reference.isdigit():
+            return f"{board_url}/{int(reference)}"
+        if "/MesajPanosu/" in reference:
+            url = normalize_url(reference, self.client.base_url)
+            thread_id = message_thread_id(url)
+            if thread_id is None or self._strip_fragment(url).split("?", 1)[0].rstrip("/") != f"{board_url}/{thread_id}":
+                raise NinovaError("That thread URL does not belong to this course's message board.")
+            return f"{board_url}/{thread_id}"
+        html, response = self.client.get_html(board_url)
+        topics = extract_message_board(html, response.url, base_url=self.client.base_url)["topics"]
+        target = normalize_lookup_text(reference)
+        matches = [item for item in topics if item.get("url") and normalize_lookup_text(item["title"]) == target]
+        if len(matches) == 1:
+            return f"{board_url}/{message_thread_id(matches[0]['url'])}"
+        titles = ", ".join(f"{message_thread_id(item.get('url'))}: {item['title']}" for item in topics[:12])
+        problem = "Several topics have that title" if matches else "No topic has exactly that title"
+        raise NinovaError(f"{problem}. Pass the topic id instead. Topics: {titles or 'none'}.")
+
+    def get_left_courses(self) -> dict[str, Any]:
+        html, response = self.client.get_html("/Kampus?1/AyrildigimSiniflar")
+        courses = extract_left_courses(html, response.url)
+        result: dict[str, Any] = {
+            "count": len(courses),
+            "courses": courses,
+            "note": (
+                "Classes the user left on Ninova. Ninova drops a class from this list once its "
+                "end date has passed or the instructor deleted it. Rejoining is done on the website."
+            ),
+        }
+        if not courses:
+            warning = self._empty_list_warning(html, response.url, scope="left classes")
+            if warning:
+                result["parse_warning"] = warning
+        return result
 
     def get_course_attendance(self, course: str) -> dict[str, Any]:
         resolved = self._resolve_course(course)
@@ -3821,6 +3884,8 @@ class NinovaMcpApp:
 
     def _empty_list_warning(self, html: str, page_url: str, *, scope: str) -> str | None:
         """Return a diagnostic when a list page parsed to zero items but looks non-empty."""
+        if content_area_is_empty(html):
+            return None
         page = parse_html_page(page_url, html, base_url=self.client.base_url)
         text = normalize_lookup_text(page.get("text_excerpt") or page.get("text") or "")
         empty_markers = (
@@ -4649,7 +4714,11 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "get_course_info",
         "title": "Get Course Info",
-        "description": "Return structured information from a course's 'Sınıf Bilgileri' page.",
+        "description": (
+            "Return structured information from a course's 'Sınıf Bilgileri' page: CRN, term, "
+            "dates, instructors and assistants, weekly time and room, course description, "
+            "textbooks and weekly plan."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -4683,8 +4752,9 @@ TOOLS: list[dict[str, Any]] = [
         "title": "Get Course Grades",
         "description": (
             "Read the Ninova 'Notlar' page for a course — grades as the instructor entered "
-            "them in the LMS, not the official transcript record. For the official letter/"
-            "midterm grade, use obs_get_course_grades instead."
+            "them in the LMS, not the official transcript record — with each item's weight, "
+            "class average, standard deviation and student count when Ninova shows them. For "
+            "the official letter/midterm grade, use obs_get_course_grades instead."
         ),
         "inputSchema": {
             "type": "object",
@@ -4701,7 +4771,11 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "get_course_message_board",
         "title": "Get Course Message Board",
-        "description": "Read the Ninova 'Mesaj Panosu' page for a course.",
+        "description": (
+            "List the topics on a course's Ninova message board ('Mesaj Panosu') with their "
+            "thread_id, opening text and last message. Read one topic in full with "
+            "get_course_message_thread."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -4726,11 +4800,36 @@ TOOLS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "get_course_message_thread",
+        "title": "Read Message Thread",
+        "description": (
+            "Read every post of one topic on a course's Ninova message board: author, time, "
+            "text and links. thread is the thread_id from get_course_message_board, the topic "
+            "URL, or its exact title. can_reply says whether the board accepts a reply."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "course": {
+                    "type": "string",
+                    "description": "Course code, title, course path, or full course URL.",
+                },
+                "thread": {
+                    "type": "string",
+                    "description": "thread_id, topic URL, or exact topic title.",
+                },
+            },
+            "required": ["course", "thread"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "get_course_attendance",
         "title": "Get Course Attendance",
         "description": (
             "Read the Ninova 'Yoklama' page for a course — attendance as the instructor "
-            "recorded it in the LMS, not the official OBS record. For official attendance "
+            "recorded it in Ninova or Kepler, not the official OBS record. A 0 mark only means "
+            "no presence was recorded (future weeks are listed too). For official attendance "
             "with an absence-risk summary, use obs_get_attendance instead."
         ),
         "inputSchema": {
@@ -4748,7 +4847,11 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "get_course_remote_learning",
         "title": "Get Course Remote Learning",
-        "description": "Read the Ninova 'Uzaktan Eğitim' page for a course.",
+        "description": (
+            "Read the Ninova 'Uzaktan Eğitim' page for a course: active online lesson sessions "
+            "with their join links, and past sessions with recording links and passwords "
+            "(recordings stay available for 10 days)."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -4800,6 +4903,15 @@ TOOLS: list[dict[str, Any]] = [
             "required": ["course"],
             "additionalProperties": False,
         },
+    },
+    {
+        "name": "get_left_courses",
+        "title": "Get Left Classes",
+        "description": (
+            "List the Ninova classes the user has left ('Ayrıldığım Sınıflar') with CRN, course "
+            "code, dates and when they left. Use it when a course is missing from list_courses."
+        ),
+        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
         "name": "get_dashboard_announcements",

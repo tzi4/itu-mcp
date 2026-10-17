@@ -219,10 +219,18 @@ own routes such as `/Sinif/<id>.<id>/Notlar`, `/MesajPanosu`, `/Yoklama`, and
 - `get_course_assignments` — assignments; `include_details` (default true) fetches each detail/upload page.
 - `get_course_info` — structured data from `Sınıf Bilgileri`.
 - `get_course_sections` — the course routes exposed on the course home page.
-- `get_course_grades` — structured data from `Notlar`.
-- `get_course_message_board` — topics from `Mesaj Panosu`, optionally with thread details.
-- `get_course_attendance` — structured data from `Yoklama`.
-- `get_course_remote_learning` — structured data from `Uzaktan Eğitim`.
+- `get_course_grades` — structured data from `Notlar`, with each item's weight, class
+  average, standard deviation, student count and rank when Ninova shows them.
+- `get_course_message_board` — topics from `Mesaj Panosu` with their `thread_id`, optionally
+  with thread details.
+- `get_course_message_thread(course, thread)` — every post of one topic (author, time, text,
+  links), by `thread_id`, topic URL or exact title, and whether the board accepts a reply.
+- `get_course_attendance` — structured data from `Yoklama` (Ninova or Kepler). A `0` mark only
+  means no presence was recorded; Ninova lists future weeks too.
+- `get_course_remote_learning` — `Uzaktan Eğitim`: active sessions with join links and past
+  sessions with recording links and passwords (recordings stay for 10 days).
+- `get_left_courses` — classes you left (`Ayrıldığım Sınıflar`), for a course missing from
+  `list_courses`.
 - `get_course_overview` — combined live or tracked overview of a course (`include_assignment_details` default false).
 - `get_dashboard_announcements` — announcements from `/Kampus?1/Duyurular`.
 - `get_dashboard_assignments` — assignments from `/Kampus?1/Odevler` (`include_details` default true).

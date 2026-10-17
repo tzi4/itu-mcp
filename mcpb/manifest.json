@@ -145,7 +145,11 @@
     },
     {
       "name": "get_course_message_board",
-      "description": "Read the Ninova 'Mesaj Panosu' page for a course."
+      "description": "List the topics on a course's Ninova message board ('Mesaj Panosu')."
+    },
+    {
+      "name": "get_course_message_thread",
+      "description": "Read every post of one topic on a course's Ninova message board."
     },
     {
       "name": "get_course_attendance",
@@ -153,7 +157,7 @@
     },
     {
       "name": "get_course_remote_learning",
-      "description": "Read the Ninova 'Uzaktan Eğitim' page for a course."
+      "description": "Read a course's Ninova 'Uzaktan Eğitim' page: online lesson links and recordings."
     },
     {
       "name": "get_course_overview",

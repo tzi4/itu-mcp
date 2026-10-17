@@ -1027,6 +1027,41 @@ def extract_course_sections(html: str, page_url: str, base_url: str) -> list[dic
     return sections
 
 
+GRADE_STATISTIC_KEYS = {
+    "not yuzdesi": "weight_percent",
+    "ortalama": "class_average",
+    "standart sapma": "standard_deviation",
+    "ogrenci sayisi": "student_count",
+    "siralamaniz": "rank",
+}
+
+
+def _ninova_number(value: str | None) -> float | None:
+    text = clean_text(value).lstrip("%").replace(".", "").replace(",", ".")
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def _grade_statistics(cell: Tag) -> dict[str, Any]:
+    """Class statistics Ninova shows in a grade item's hover tooltip script."""
+    script = " ".join(tag.get_text() for tag in cell.find_all("script"))
+    stats: dict[str, Any] = {}
+    for label, value in re.findall(r"<strong>([^<]+)</strong>\s*<span>([^<]*)</span>", script):
+        key = GRADE_STATISTIC_KEYS.get(normalize_lookup_text(label))
+        if key is None:
+            continue
+        number = _ninova_number(value)
+        if key in {"student_count", "rank"} and number is not None:
+            number = int(number)
+        stats[key] = number
+    # Ninova shows rank 0 when the student has no score for the item yet.
+    if stats.get("rank") == 0:
+        stats["rank"] = None
+    return stats
+
+
 def extract_gradebook(html: str, page_url: str, base_url: str) -> dict[str, Any]:
     soup = make_soup(html)
     page = parse_html_page(page_url, html, base_url=base_url)
@@ -1041,6 +1076,7 @@ def extract_gradebook(html: str, page_url: str, base_url: str) -> dict[str, Any]
     student_name = None
     weighted_average = None
     grade_items: list[dict[str, Any]] = []
+    statistics: list[dict[str, Any]] = []
     if target_table is not None:
         headers = [clean_text(cell.get_text(" ", strip=True)) for cell in target_table.find_all("th")]
         if headers:
@@ -1049,7 +1085,8 @@ def extract_gradebook(html: str, page_url: str, base_url: str) -> dict[str, Any]
                 student_name = first_header
 
         for row in target_table.find_all("tr")[1:]:
-            cells = [clean_text(cell.get_text(" ", strip=True)) for cell in row.find_all("td")]
+            cell_tags = row.find_all("td")
+            cells = [clean_text(cell.get_text(" ", strip=True)) for cell in cell_tags]
             if len(cells) < 2:
                 continue
             label = cells[0]
@@ -1058,6 +1095,8 @@ def extract_gradebook(html: str, page_url: str, base_url: str) -> dict[str, Any]
             if normalize_lookup_text(label) == "agirlikli ortalamaniz":
                 weighted_average = score or None
                 continue
+            # Grade items keep their tracked shape; statistics are reported
+            # separately so class averages moving do not look like new grades.
             grade_items.append(
                 {
                     "title": label,
@@ -1065,6 +1104,12 @@ def extract_gradebook(html: str, page_url: str, base_url: str) -> dict[str, Any]
                     "description": description or None,
                 }
             )
+            id_input = cell_tags[0].find("input", attrs={"name": re.compile(r"hdnObjectId$")})
+            item_id = str(id_input.get("value") or "") if id_input is not None else ""
+            stats = _grade_statistics(cell_tags[0])
+            if stats or item_id:
+                statistics.append({"index": len(grade_items) - 1, "title": label,
+                                   "item_id": item_id or None, **stats})
 
     return {
         "url": page["url"],
@@ -1072,7 +1117,73 @@ def extract_gradebook(html: str, page_url: str, base_url: str) -> dict[str, Any]
         "weighted_average": weighted_average,
         "count": len(grade_items),
         "grades": grade_items,
+        "statistics": statistics,
     }
+
+
+MESSAGE_THREAD_PATH_RE = re.compile(r"/MesajPanosu/(\d+)/?$", re.IGNORECASE)
+
+
+def message_thread_id(url: str | None) -> str | None:
+    """The numeric topic id at the end of a ``/MesajPanosu/<id>`` URL."""
+    match = MESSAGE_THREAD_PATH_RE.search(urlparse(url or "").path)
+    return match.group(1) if match else None
+
+
+def _form_field(soup: BeautifulSoup, suffix: str) -> Tag | None:
+    """The form control whose WebForms name ends with ``$<suffix>``."""
+    return soup.find(attrs={"name": re.compile(r"\$" + re.escape(suffix) + "$")})
+
+
+def _postback_target(soup: BeautifulSoup, suffix: str) -> str | None:
+    """The ``__EVENTTARGET`` of a WebForms LinkButton whose id ends with ``_<suffix>``."""
+    anchor = soup.find("a", id=re.compile(r"_" + re.escape(suffix) + "$"))
+    if anchor is None:
+        return None
+    match = re.search(r"PostBack(?:Options)?\(\s*(?:new WebForm_PostBackOptions\()?\s*(?:&quot;|[\"'])([^\"'&]+)",
+                      str(anchor.get("href") or ""))
+    return match.group(1) if match else None
+
+
+def extract_signed_in_name(html: str) -> str | None:
+    """The user name Ninova greets in its page header ("Hoş Geldiniz, <name>")."""
+    soup = make_soup(html)
+    for cell in soup.find_all("td"):
+        text = clean_text(cell.get_text(" ", strip=True))
+        if normalize_lookup_text(text).startswith("hos geldiniz"):
+            strong = cell.find("strong")
+            name = clean_text(strong.get_text(" ", strip=True)) if strong else text.split(",", 1)[-1]
+            return clean_text(name) or None
+    return None
+
+
+def _post_links(cell: Tag, page_url: str) -> list[dict[str, str]]:
+    links: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for anchor in cell.find_all("a", href=True):
+        url = urljoin(page_url, str(anchor["href"]))
+        if urlparse(url).scheme not in {"http", "https"} or url in seen:
+            continue
+        seen.add(url)
+        links.append({"text": clean_text(anchor.get_text(" ", strip=True)) or url, "url": url})
+    return links
+
+
+def content_area_is_empty(html: str) -> bool:
+    """Whether Ninova's main content column holds only the page heading.
+
+    A course with no announcements renders the "Duyurular" heading and
+    nothing else, with no "no records" sentence to recognize.
+    """
+    soup = make_soup(html)
+    area = soup.select_one("div.orta > div.ic")
+    if area is None:
+        return False
+    header = area.find(id="ctl00_pnlHeader")
+    if header is None:
+        return False
+    header.extract()
+    return not clean_text(area.get_text(" ", strip=True)) and area.find(["table", "a", "form", "input"]) is None
 
 
 def extract_message_board(html: str, page_url: str, base_url: str) -> dict[str, Any]:
@@ -1089,6 +1200,7 @@ def extract_message_board(html: str, page_url: str, base_url: str) -> dict[str, 
             topic_text = clean_text(cells[0].get_text(" ", strip=True))
             last_message_text = clean_text(cells[1].get_text(" ", strip=True))
             author, last_message_at, last_message_at_iso = split_trailing_ninova_datetime(last_message_text)
+            # Item fields stay stable: change tracking compares whole topic records.
             topics.append(
                 {
                     "title": title,
@@ -1105,6 +1217,40 @@ def extract_message_board(html: str, page_url: str, base_url: str) -> dict[str, 
         "url": page_url,
         "count": len(topics),
         "topics": topics,
+        # Students may start a topic when the board shows the "Yeni Başlık Oluştur" form.
+        "can_create_topic": _form_field(soup, "txtBaslik") is not None,
+    }
+
+
+def extract_message_reply_form(html: str) -> dict[str, Any] | None:
+    """The reply form of a message thread page, or None when it has none.
+
+    The reply box is a TinyMCE-enhanced textarea named ``...$txtMesaj``; the
+    "Cevapla" LinkButton posts the page back with its own ``__EVENTTARGET``.
+    """
+    soup = make_soup(html)
+    form = soup.find("form")
+    textarea = _form_field(soup, "txtMesaj")
+    target = _postback_target(soup, "lbMesajEkle")
+    if form is None or textarea is None or textarea.name != "textarea" or not target:
+        return None
+    values: dict[str, str] = {}
+    for element in form.find_all("input"):
+        name, kind = element.get("name"), (element.get("type") or "text").lower()
+        if name and kind in {"hidden", "text"}:
+            values[str(name)] = str(element.get("value") or "")
+    for element in form.find_all("textarea"):
+        if element.get("name"):
+            values[str(element["name"])] = element.get_text()
+    for select in form.find_all("select"):
+        option = select.find("option", selected=True) or select.find("option")
+        if select.get("name"):
+            values[str(select["name"])] = str(option.get("value", "")) if option else ""
+    return {
+        "action": str(form.get("action") or ""),
+        "text_field": str(textarea["name"]),
+        "event_target": target,
+        "values": values,
     }
 
 
@@ -1116,7 +1262,7 @@ def extract_message_thread_detail(html: str, page_url: str, base_url: str) -> di
     if table is not None:
         for row in table.find_all("tr")[1:]:
             cells = row.find_all("td")
-            if len(cells) < 2:
+            if len(cells) < 2 or row.find("textarea") is not None:
                 continue
             sender_text = clean_text(cells[0].get_text(" ", strip=True))
             if normalize_lookup_text(sender_text) == "mesaj":
@@ -1124,19 +1270,25 @@ def extract_message_thread_detail(html: str, page_url: str, base_url: str) -> di
             author, sent_at, sent_at_iso = split_trailing_ninova_datetime(sender_text)
             posts.append(
                 {
+                    "index": len(posts) + 1,
                     "author": author or sender_text,
                     "sent_at": sent_at,
                     "sent_at_iso": sent_at_iso,
                     "body_text": clean_text(cells[1].get_text(" ", strip=True)),
+                    "links": _post_links(cells[1], page_url),
                 }
             )
 
+    header = soup.select_one("#ctl00_pnlHeader h1")
+    title = clean_text(header.get_text(" ", strip=True)) if header else None
     return {
-        "title": page["headings"][0]["text"] if page["headings"] else page["title"],
+        "thread_id": message_thread_id(page["url"]),
+        "title": title or (page["headings"][0]["text"] if page["headings"] else page["title"]),
         "url": page["url"],
         "count": len(posts),
         "posts": posts,
         "attachments": page["attachments"],
+        "can_reply": extract_message_reply_form(html) is not None,
     }
 
 
@@ -1205,10 +1357,35 @@ def extract_attendance(html: str, page_url: str, base_url: str) -> dict[str, Any
                 }
             )
 
+    # The native Ninova table normally holds only the student's name. When an
+    # instructor records attendance there, it gains columns; keep them as-is.
+    ninova_table: dict[str, Any] | None = None
+    native = _table_after_heading(soup, "Ninova Yoklama Bilgileri")
+    if native is not None and native is not attendance_table:
+        native_headers = [clean_text(cell.get_text(" ", strip=True)) for cell in native.find_all("th")]
+        if len(native_headers) > 1:
+            ninova_table = {
+                "headers": native_headers,
+                "rows": [
+                    [clean_text(cell.get_text(" ", strip=True)) for cell in row.find_all("td")]
+                    for row in native.find_all("tr") if row.find("td") is not None
+                ],
+            }
+
+    weeks_with_presence = sum(
+        1 for week in weeks if any(session["present_count"] for session in week["sessions"])
+    )
     return {
         "url": page["url"],
         "student_name": student_name,
         "source_system": source_system,
+        "marks_note": (
+            "1 means present for that class hour. 0 means no presence was recorded: an absence, "
+            "or a session that has not happened yet or was not taken. Ninova lists every week of "
+            "the term, so do not count zeros in future weeks as absences."
+        ) if weeks else None,
+        "weeks_with_presence": weeks_with_presence,
+        "ninova_table": ninova_table,
         "disclaimer": disclaimer,
         "headers": headers,
         "count": len(weeks),
@@ -1225,6 +1402,32 @@ def _table_after_heading(soup: BeautifulSoup, heading_text: str) -> Tag | None:
             continue
         return tag.find_next("table")
     return None
+
+
+def _web_url(page_url: str, href: str | None) -> str | None:
+    """An absolute http(s) URL, or None for javascript: postbacks and the like."""
+    if not href:
+        return None
+    url = urljoin(page_url, str(href).strip())
+    return url if urlparse(url).scheme in {"http", "https"} else None
+
+
+def _session_media(row: Tag, page_url: str, item: dict[str, Any]) -> None:
+    """Add recording and join details that Ninova keeps outside plain links.
+
+    Recordings of past sessions open in a Vimeo player from a button whose
+    ``data-vimeo`` attribute holds the video URL and ``data-pass`` its
+    password; the page notes they stay available for 10 days.
+    """
+    player = row.find(attrs={"data-vimeo": True})
+    if player is not None:
+        recording = _web_url(page_url, player.get("data-vimeo"))
+        if recording:
+            item["recording_url"] = recording
+            item["recording_password"] = clean_text(str(player.get("data-pass") or "")) or None
+    if "meeting_url" not in item and row.find("a", href=re.compile(r"^\s*javascript:", re.I)) is not None:
+        # Joining runs through a Ninova postback that only a browser can follow.
+        item["join_via_ninova_page"] = page_url
 
 
 def _extract_remote_session_rows(table: Tag, page_url: str) -> list[dict[str, Any]]:
@@ -1247,8 +1450,10 @@ def _extract_remote_session_rows(table: Tag, page_url: str) -> list[dict[str, An
             if not empty_state(text):
                 item = {"text": text, "title": text}
                 anchor = cells[0].find("a", href=True)
-                if anchor is not None:
-                    item["meeting_url"] = urljoin(page_url, str(anchor["href"]))
+                meeting_url = _web_url(page_url, anchor["href"]) if anchor is not None else None
+                if meeting_url:
+                    item["meeting_url"] = meeting_url
+                _session_media(row, page_url, item)
                 rows.append(item)
         return rows
 
@@ -1260,10 +1465,11 @@ def _extract_remote_session_rows(table: Tag, page_url: str) -> list[dict[str, An
         for header, cell in zip(headers, cells, strict=False):
             item[header] = clean_text(cell.get_text(" ", strip=True)) or None
             anchor = cell.find("a", href=True)
-            if anchor is not None:
-                item[f"{header}_url"] = urljoin(page_url, anchor["href"])
+            link = _web_url(page_url, anchor["href"]) if anchor is not None else None
+            if link:
+                item[f"{header}_url"] = link
                 if any(word in normalize_lookup_text(header) for word in ("baglanti", "link", "katil")):
-                    item["meeting_url"] = item[f"{header}_url"]
+                    item["meeting_url"] = link
             key = normalize_lookup_text(header)
             if key in {"baslik", "oturum", "title", "session"}:
                 item["title"] = item[header]
@@ -1271,6 +1477,7 @@ def _extract_remote_session_rows(table: Tag, page_url: str) -> list[dict[str, An
                 item["start_at"] = ninova_datetime_iso(item[header])
             elif key in {"bitis", "bitis tarihi", "end", "end time"}:
                 item["end_at"] = ninova_datetime_iso(item[header])
+        _session_media(row, page_url, item)
         rows.append(item)
     return rows
 
@@ -1290,7 +1497,42 @@ def extract_remote_learning(html: str, page_url: str, base_url: str) -> dict[str
         "past_count": len(past_sessions),
         "active_sessions": active_sessions,
         "past_sessions": past_sessions,
+        "recording_note": (
+            "Ninova keeps session recordings available for 10 days after they are recorded."
+        ),
     }
+
+
+def extract_left_courses(html: str, page_url: str) -> list[dict[str, Any]]:
+    """Rows of the "Ayrıldığım Sınıflar" page: classes the student has left."""
+    soup = make_soup(html)
+    table = None
+    for candidate in soup.find_all("table"):
+        headers = [normalize_lookup_text(cell.get_text(" ", strip=True)) for cell in candidate.find_all("th")]
+        if "sinif adi" in headers and "ders adi" in headers:
+            table = candidate
+            break
+    if table is None:
+        return []
+    headers = [normalize_lookup_text(cell.get_text(" ", strip=True)) for cell in table.find_all("th")]
+    keys = {
+        "sinif adi": "class_name", "ders adi": "course", "baslangic tarihi": "start_date",
+        "bitis tarihi": "end_date", "siniftan ayrilis tarihi": "left_at",
+    }
+    courses: list[dict[str, Any]] = []
+    for row in table.find_all("tr"):
+        cells = row.find_all("td", recursive=False)
+        if len(cells) != len(headers):
+            continue
+        item: dict[str, Any] = {}
+        for header, cell in zip(headers, cells, strict=True):
+            key = keys.get(header)
+            if key:
+                item[key] = clean_text(cell.get_text(" ", strip=True)) or None
+        crn = re.search(r"\b(\d{5})\b", item.get("class_name") or "")
+        item["crn"] = crn.group(1) if crn else None
+        courses.append(item)
+    return courses
 
 
 # ---------------------------------------------------------------------------

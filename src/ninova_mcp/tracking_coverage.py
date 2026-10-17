@@ -11,7 +11,7 @@ import re
 from typing import Any
 from urllib.parse import parse_qsl, urljoin, urlparse
 
-from .parsing import _table_after_heading, make_soup, normalize_lookup_text, is_course_root
+from .parsing import _table_after_heading, content_area_is_empty, make_soup, normalize_lookup_text, is_course_root
 
 
 def coverage(status: str, reason: str | None = None, **details: Any) -> dict[str, Any]:
@@ -237,6 +237,8 @@ def scope_coverage(html: str, page_url: str, expected_url: str, scope: str, payl
         return result
     if _explicit_empty(text, scope):
         return coverage("complete", "explicit_empty_scope")
+    if scope == "announcements" and content_area_is_empty(html):
+        return coverage("complete", "empty_content_area")
     # Known headers without body rows are also an explicit empty inventory.
     required_headers = {
         "class_files": {"dosyalar", "boyut", "tarih"},
