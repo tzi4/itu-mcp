@@ -46,14 +46,14 @@
     {
       "path": "src/ninova_mcp/update_check.py",
       "test_id": "B404",
-      "source_sha256": "0ba25d68adc3a33f49aae8064d892b63baa700a9dd5813539974b3066aa10c76",
+      "source_sha256": "0378b7af648c68b9800346f3e0cc7bc0192caf89855cd40db1dabbf859553979",
       "severity": "LOW",
       "reason": "itu-mcp --update runs uv with a fixed argument list: the located uv binary, constant options and an archive URL of this fork at a 40-hex commit from GitHub; no shell."
     },
     {
       "path": "src/ninova_mcp/update_check.py",
       "test_id": "B603",
-      "source_sha256": "0ba25d68adc3a33f49aae8064d892b63baa700a9dd5813539974b3066aa10c76",
+      "source_sha256": "0378b7af648c68b9800346f3e0cc7bc0192caf89855cd40db1dabbf859553979",
       "severity": "LOW",
       "reason": "itu-mcp --update runs uv with a fixed argument list: the located uv binary, constant options and an archive URL of this fork at a 40-hex commit from GitHub; no shell."
     }

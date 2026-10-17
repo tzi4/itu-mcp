@@ -124,7 +124,8 @@ class ExportToolTests(unittest.TestCase):
             text = Path(result["path"]).read_bytes().decode("utf-8")
             self.assertEqual(text, result["ics"])
             self.assertEqual(text.count("BEGIN:VEVENT"), 4)
-            self.assertEqual(Path(result["path"]).stat().st_mode & 0o777, 0o600)
+            if os.name != "nt":  # Windows has no POSIX permission bits.
+                self.assertEqual(Path(result["path"]).stat().st_mode & 0o777, 0o600)
 
     def test_one_failing_source_becomes_a_warning(self) -> None:
         from ninova_mcp.server import NinovaMcpApp
