@@ -229,6 +229,16 @@ own routes such as `/Sinif/<id>.<id>/Notlar`, `/MesajPanosu`, `/Yoklama`, and
   means no presence was recorded; Ninova lists future weeks too.
 - `get_course_remote_learning` — `Uzaktan Eğitim`: active sessions with join links and past
   sessions with recording links and passwords (recordings stay for 10 days).
+- `ninova_prepare_message_reply(course, thread, text)` and `ninova_post_message_reply(draft_id,
+  confirm)` — reply to a message board topic in two steps, like sending mail. The first checks
+  that the topic is on the course's board and accepts replies, and returns the exact preview
+  (topic, the name it posts as, the text and the HTML Ninova receives) with a one-time
+  `draft_id`; nothing is posted. The second loads a fresh form, posts it once with
+  `confirm=true` and reads the topic back. If the reply is not found there, the result is
+  `uncertain` and the topic should be read before trying again. The text is plain (up to 4000
+  characters; blank lines separate paragraphs) and is escaped, so markup appears literally.
+  The whole class and the instructors see a reply. `NINOVA_MESSAGE_BOARD_WRITES=0` turns
+  replies off; over remote HTTP they also need remote write actions.
 - `get_left_courses` — classes you left (`Ayrıldığım Sınıflar`), for a course missing from
   `list_courses`.
 - `get_course_overview` — combined live or tracked overview of a course (`include_assignment_details` default false).
@@ -260,6 +270,7 @@ these to `0` to turn one off:
 | `NINOVA_MAIL_SEND` | Sending mail |
 | `NINOVA_MAIL_SAVE_DRAFTS` | Saving prepared mail to the Drafts folder |
 | `NINOVA_HELP_TICKET_WRITES` | Opening help tickets |
+| `NINOVA_MESSAGE_BOARD_WRITES` | Replying on Ninova message boards |
 | `NINOVA_REMOTE_ENABLE_WRITES` | Every write action over remote HTTP |
 
 ### Assignment upload safety

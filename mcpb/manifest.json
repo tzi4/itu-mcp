@@ -100,6 +100,14 @@
       "description": "Write weekly classes, final exams and assignment deadlines to one .ics calendar file."
     },
     {
+      "name": "ninova_prepare_message_reply",
+      "description": "Prepare a Ninova message board reply and return its exact preview; nothing is posted."
+    },
+    {
+      "name": "ninova_post_message_reply",
+      "description": "Post a prepared message board reply exactly as previewed, only after the user's approval."
+    },
+    {
       "name": "refresh_session",
       "description": "Force a new login with NINOVA_USERNAME and NINOVA_PASSWORD."
     },

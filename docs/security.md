@@ -56,6 +56,11 @@ This project logs in to İTÜ Ninova, OBS, Portal and optionally İTÜ Mail with
   `help_prepare_ticket`, by its one-time draft ID and `confirm=true`, and presses the
   form's submit button once. Choosing units and categories only navigates the form.
   `NINOVA_HELP_TICKET_WRITES=0` turns it off.
+- `MessageBoardWriter` posts a Ninova message board reply only from a draft previewed by
+  `ninova_prepare_message_reply`, by its one-time draft ID and `confirm=true`. It checks that
+  the topic is listed on that course's board, escapes the text so no markup is passed on,
+  presses the topic's "Cevapla" button once, and reads the topic back; an unconfirmed reply
+  is reported as `uncertain`, never retried. `NINOVA_MESSAGE_BOARD_WRITES=0` turns it off.
 - `HocametreClient` (on by default; `ITU_MCP_HOCAMETRE=0` turns it off) sends GET requests only to
   the exact host `mordor-api-production.notkutusu.com` over HTTPS, with its own cookie-free
   session, and never rates or comments.

@@ -28,6 +28,7 @@ from .server import (
     MAIL_DRAFT_TOOL_NAMES,
     MAIL_SEND_TOOL_NAMES,
     MAIL_TOOL_NAMES,
+    MESSAGE_BOARD_WRITE_TOOL_NAMES,
     OBS_REGISTRATION_WRITE_TOOL_NAMES,
     REMOTE_TOOL_NAMES,
     SERVER_INSTRUCTIONS,
@@ -36,6 +37,7 @@ from .server import (
     NinovaMcpApp,
     apply_server_version,
     help_ticket_writes_enabled,
+    message_board_writes_enabled,
     obs_registration_writes_enabled,
     register_prompts,
     register_resources,
@@ -88,6 +90,8 @@ def _selected_remote_tool_names() -> list[str]:
         eligible.update(MAIL_DRAFT_TOOL_NAMES)
     if writes_enabled and help_ticket_writes_enabled():
         eligible.update(HELP_TICKET_WRITE_TOOL_NAMES)
+    if writes_enabled and message_board_writes_enabled():
+        eligible.update(MESSAGE_BOARD_WRITE_TOOL_NAMES)
     available = [
         name
         for name in LOCAL_TOOL_NAMES
