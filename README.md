@@ -27,8 +27,8 @@ adds three things that neither of them offers:
    your own university access, not only open-access papers.
 3. **A router that saves tokens and time.** Both earlier projects list each
    operation as its own tool; ITU MCP lets you switch whole groups off. Here, instead
-   of loading all 116 tool definitions into every conversation, the 84 read-only
-   operations are reached through one compact tool, so your assistant sees 34 tools.
+   of loading all 121 tool definitions into every conversation, the 84 read-only
+   operations are reached through one compact tool, so your assistant sees 37 tools.
    In my tests, this server's share of the first prompt dropped to less than half,
    the model picked the right operation more reliably, and several long, multi-step
    requests finished noticeably faster. The router is still evolving.
