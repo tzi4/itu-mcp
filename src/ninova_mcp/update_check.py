@@ -1,4 +1,4 @@
-"""Tell the user, at most once a day, when this fork's main branch has moved on.
+"""Tell the user, now and then, when this fork's main branch has moved on.
 
 The fork does not publish releases and its package version rarely changes, so
 the installed build is identified by the Git commit it was installed from. The
@@ -13,6 +13,12 @@ how many commits the installed build is behind. It runs on a background
 thread, never on a tool call, uses a short timeout, sends only the installed
 commit, and its result is cached in the state directory for a day. Set
 ``ITU_MCP_UPDATE_CHECK=0`` to turn it off.
+
+The notice reaches the user through tool results, not on every answer: the
+first tool result after an update is found carries ``update_notice``, and after
+that at most one result every three days, until the install is updated. The
+last time it was shown is kept in the state directory, so new conversations and
+restarts do not repeat it.
 """
 from __future__ import annotations
 
@@ -44,6 +50,8 @@ SERVER_PREFIX_DEFAULT = "/opt/itu-mcp-paperbridge"
 PYTHON_REQUEST = ">=3.11,<3.15"
 CACHE_FILE_NAME = "update-check.json"
 CHECK_INTERVAL_SECONDS = 24 * 60 * 60
+NOTICE_FILE_NAME = "update-notice.json"
+REMINDER_INTERVAL_SECONDS = 3 * 24 * 60 * 60
 REQUEST_TIMEOUT_SECONDS = 5.0
 MAX_RESPONSE_BYTES = 1024 * 1024
 
@@ -254,15 +262,44 @@ def cached_notice(state_dir: str | Path | None = None) -> str | None:
     return notice_from_record(read_cache(cache_path(state_dir)), commit)
 
 
-def update_instructions(state_dir: str | Path | None = None) -> str:
-    """Server instruction text for a known update, read once at startup."""
-    notice = cached_notice(state_dir)
+_notice_lock = threading.Lock()
+
+
+def due_notice(state_dir: str | Path | None = None, *, now: float | None = None,
+               interval: float = REMINDER_INTERVAL_SECONDS) -> str | None:
+    """The notice for one tool result: when first found, then once per ``interval``.
+
+    Reads only local files. Marks the notice as shown when it returns one.
+    """
+    if not update_check_enabled():
+        return None
+    commit = installed_commit()
+    if not commit:
+        return None
+    notice = notice_from_record(read_cache(cache_path(state_dir)), commit)
     if not notice:
+        return None
+    now = time.time() if now is None else now
+    path = Path(state_dir or default_state_dir()) / NOTICE_FILE_NAME
+    with _notice_lock:
+        record = read_cache(path) or {}
+        try:
+            shown_at = float(record.get("shown_at") or 0)
+        except (TypeError, ValueError):
+            shown_at = 0.0
+        if record.get("installed_commit") == commit and 0 <= now - shown_at < interval:
+            return None
+        write_cache(path, {"installed_commit": commit, "shown_at": now})
+    return notice
+
+
+def update_instructions(state_dir: str | Path | None = None) -> str:
+    """Server instruction text telling the model how to pass an update notice on."""
+    if not update_check_enabled() or not installed_commit():
         return ""
     return (
-        f"\n\nUpdate notice: {notice} Mention this to the user once, briefly, at a "
-        "natural point in the conversation, with that exact command; do not repeat it in "
-        "later answers."
+        "\n\nWhen a tool result includes update_notice, tell the user once, briefly, at a "
+        "natural point, with that exact command; do not repeat it later in the conversation."
     )
 
 

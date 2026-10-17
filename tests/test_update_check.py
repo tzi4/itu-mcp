@@ -151,11 +151,43 @@ class CheckNowTests(unittest.TestCase):
             notice = update_check.cached_notice(self.state)
             self.assertIn("5 new commits", notice)
             self.assertIn("e80f48a", notice)
-            self.assertIn("once", update_check.update_instructions(self.state))
+            # The instructions never carry the notice itself, so they stay the same
+            # in every conversation.
+            self.assertIn("update_notice", update_check.update_instructions(self.state))
+            self.assertNotIn("5 new commits", update_check.update_instructions(self.state))
         # After an upgrade the old record no longer applies.
         with patch.object(update_check, "installed_commit", return_value=LATEST):
             self.assertIsNone(update_check.cached_notice(self.state))
+        with patch.object(update_check, "installed_commit", return_value=None):
             self.assertEqual(update_check.update_instructions(self.state), "")
+
+    def test_notice_is_shown_first_then_every_few_days(self) -> None:
+        check_now(self.state, commit=COMMIT, now=1000.0, fetch=lambda c: {"status": "behind", "behind_by": 5})
+        day = 24 * 60 * 60
+        with patch.object(update_check, "installed_commit", return_value=COMMIT):
+            self.assertIn("5 new commits", update_check.due_notice(self.state, now=2000.0))
+            self.assertIsNone(update_check.due_notice(self.state, now=2001.0))
+            self.assertIsNone(update_check.due_notice(self.state, now=2000.0 + 2 * day))
+            self.assertIsNotNone(update_check.due_notice(self.state, now=2000.0 + 3 * day))
+            self.assertIsNone(update_check.due_notice(self.state, now=2000.0 + 3 * day + 60))
+            with patch.dict(os.environ, {"ITU_MCP_UPDATE_CHECK": "0"}):
+                self.assertIsNone(update_check.due_notice(self.state, now=2000.0 + 30 * day))
+        # A new install is reminded again right away, and nothing is due once up to date.
+        with patch.object(update_check, "installed_commit", return_value=LATEST):
+            self.assertIsNone(update_check.due_notice(self.state, now=2000.0 + 3 * day + 120))
+
+    def test_tool_results_carry_the_due_notice_once(self) -> None:
+        from ninova_mcp.server import NinovaMcpApp, TOOLS, _tool_registration
+
+        check_now(self.state, commit=COMMIT, now=1000.0, fetch=lambda c: {"status": "behind", "behind_by": 2})
+        with patch.dict(os.environ, {"NINOVA_STATE_DIR": str(self.state)}), \
+                patch.object(update_check, "installed_commit", return_value=COMMIT):
+            app = NinovaMcpApp()
+            with patch.object(NinovaMcpApp, "get_left_courses", side_effect=lambda: {"courses": []}):
+                fn, _ = _tool_registration(app, "get_left_courses", {tool["name"]: tool for tool in TOOLS})
+                first, second = fn(), fn()
+        self.assertIn("2 new commits", first["update_notice"])
+        self.assertNotIn("update_notice", second)
 
     def test_up_to_date_has_no_notice(self) -> None:
         record = {"installed_commit": COMMIT, "status": "identical", "behind_by": 0}

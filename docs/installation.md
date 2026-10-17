@@ -137,9 +137,11 @@ running program cannot replace its own `.exe` there.
 The server tells you when an update exists. At most once a day, on a background
 thread that never delays a tool call, it asks the GitHub API how many commits
 `main` is ahead of the commit you installed. The request carries only that commit
-ID. When an update exists, `auth_status` returns an `update_notice`, the next
-session's server instructions ask your assistant to mention it once, and a remote
-server logs it. Check right away with `itu-mcp --check-update`, see the installed
+ID. When an update exists, the first tool result after that carries an
+`update_notice` with the update command, and your assistant mentions it once.
+After that it comes back at most every three days until you update, so it does
+not repeat in every conversation; `auth_status` and `itu_health` always include
+it, and a remote server logs it. Check right away with `itu-mcp --check-update`, see the installed
 commit with `itu-mcp --version`, and set `ITU_MCP_UPDATE_CHECK=0` to turn the check
 off. The result is cached in `update-check.json` in the state directory.
 
