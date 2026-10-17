@@ -1,41 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
   <title id="title">ITU MCP + PaperBridge</title>
-  <desc id="desc">Your campus. Your research. One conversation. A folded paper bridge connects campus and research. Maintained by tzi4, on your computer or server.</desc>
-  <defs>
-    <linearGradient id="background" x2="1" y2="1"><stop stop-color="#0b1425"/><stop offset="1" stop-color="#172b40"/></linearGradient>
-    <linearGradient id="accent"><stop stop-color="#68e4c5"/><stop offset="1" stop-color="#99b2ff"/></linearGradient>
-    <linearGradient id="paper" x2="0.4" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#b9d6df"/></linearGradient>
-    <linearGradient id="fold" x2="1" y2="1"><stop stop-color="#e3f7f1"/><stop offset="1" stop-color="#84b5c8"/></linearGradient>
-    <radialGradient id="glow"><stop stop-color="#55d7be" stop-opacity=".12"/><stop offset="1" stop-color="#55d7be" stop-opacity="0"/></radialGradient>
-    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#ffffff" stroke-opacity=".025"/></pattern>
-  </defs>
-  <rect width="1200" height="360" rx="26" fill="url(#background)"/>
-  <rect width="1200" height="360" rx="26" fill="url(#grid)"/>
-  <ellipse cx="928" cy="195" rx="272" ry="170" fill="url(#glow)"/>
-  <g font-family="Inter, Segoe UI, Arial, sans-serif">
-    <text x="64" y="68" font-size="13" font-weight="600" letter-spacing="2.5" fill="#68e4c5">MAINTAINED BY TZI4</text>
-    <text x="62" y="144" font-size="64" font-weight="700" letter-spacing="-1.5" fill="#f4f8ff">ITU MCP</text>
-    <text x="62" y="213" font-size="54" font-weight="600" letter-spacing="-1" fill="url(#accent)">+ PaperBridge</text>
-    <text x="64" y="274" font-size="23" fill="#ccd7e6">Your campus. Your research. One conversation.</text>
-    <text x="65" y="312" font-size="13" letter-spacing="1.8" fill="#8c9fb7">ON YOUR COMPUTER OR SERVER</text>
+  <desc id="desc">Your campus. Your research. One conversation. Academic pages form an open arch on a warm paper background.</desc>
+  <rect width="1200" height="360" rx="24" fill="#f5f3ec"/>
+
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="63" y="66" fill="#356960" font-size="12" font-weight="600" letter-spacing="2.4">CAMPUS + RESEARCH</text>
+    <text x="60" y="145" fill="#142b33" font-size="65" font-weight="700" letter-spacing="-2">ITU MCP</text>
+    <text x="60" y="216" fill="#21736c" font-size="59" font-weight="600" letter-spacing="-1.8">+ PaperBridge</text>
+    <text x="63" y="284" fill="#53666a" font-size="22">Your campus. Your research. One conversation.</text>
+    <text x="1137" y="64" fill="#657671" font-size="13" text-anchor="end">by tzi4</text>
   </g>
-  <g>
-    <path d="M703 281L1116 249L1152 271L749 306Z" fill="#061120" opacity=".5"/>
-    <path d="M704 252L1098 221L1141 247L745 279Z" fill="url(#paper)"/>
-    <path d="M745 279L1141 247L1141 256L745 288Z" fill="#86acbd"/>
-    <path d="M704 252L745 279L745 288L704 261Z" fill="#bed9df"/>
-    <path d="M755 145L772 152L783 254L764 250Z" fill="url(#paper)"/>
-    <path d="M772 152L788 145L797 246L783 254Z" fill="url(#fold)"/>
-    <path d="M1055 107L1073 113L1094 227L1074 231Z" fill="url(#paper)"/>
-    <path d="M1073 113L1087 105L1108 217L1094 227Z" fill="url(#fold)"/>
-    <path d="M771 174L1085 217L1088 227L773 186Z" fill="#d1e9e8"/>
-    <path d="M779 245L1062 112L1071 121L787 252Z" fill="url(#paper)"/>
-    <path d="M755 145L1055 107L1073 113L772 152Z" fill="#f3fcf9"/>
-    <path d="M772 152L1073 113L1075 124L774 164Z" fill="url(#fold)"/>
-    <path d="M755 145L772 152L774 164L757 156Z" fill="#b9dadc"/>
-    <path d="M788 145L1087 105L1092 112L791 153Z" fill="#e1f4ef" opacity=".85"/>
-    <path d="M929 143L939 141L952 230L942 232Z" fill="#d7efed"/>
-    <path d="M745 279L1141 247" fill="none" stroke="#e8faf6" stroke-width="1.5"/>
-    <path d="M783 254L797 246M1074 231L1094 227" fill="none" stroke="#effcf8" stroke-opacity=".7"/>
+
+  <path d="M745 285 H1125" stroke="#b6c6bd" stroke-width="1.5"/>
+  <g stroke="#315b58" stroke-width="1.6" stroke-linejoin="round">
+    <path d="M764 268 L807 154 L883 183 L840 297 Z" fill="#ffffff"/>
+    <path d="M807 154 L869 105 L945 134 L883 183 Z" fill="#f4faf3"/>
+    <path d="M869 105 L945 90 L1021 119 L945 134 Z" fill="#ffffff"/>
+    <path d="M945 90 L1005 135 L1081 164 L1021 119 Z" fill="#c7ddd0"/>
+    <path d="M1005 135 L1045 250 L1121 279 L1081 164 Z" fill="#eef4e9"/>
+  </g>
+  <g stroke="#799b8d" stroke-width="2" opacity=".8">
+    <path d="M798 194 L835 208 M791 212 L828 226 M784 230 L811 240"/>
+    <path d="M835 151 L875 166 M849 140 L889 155"/>
+    <path d="M1029 165 L1070 181 M1035 183 L1076 199 M1041 201 L1069 212"/>
   </g>
 </svg>
