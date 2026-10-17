@@ -90,10 +90,10 @@ DOMAINS: dict[str, tuple[str, tuple[str, ...]]] = {
         ("hocametre_instructor", "hocametre_course_sections"),
     ),
     "mail": (
-        "ITU Mail: inbox, sent messages, search, message bodies, attachments, sending, forwarding "
+        "ITU Mail: inbox, sent messages, search, message bodies, conversations, attachments, sending, forwarding "
         "or saving a reviewed message to Drafts",
         ("mail_status", "mail_list_inbox", "mail_list_sent", "mail_get_message",
-         "mail_get_attachment", "mail_search", "mail_prepare_message", "mail_send_message",
+         "mail_get_thread", "mail_get_attachment", "mail_search", "mail_prepare_message", "mail_send_message",
          "mail_save_draft"),
     ),
     "papers": (
@@ -214,6 +214,7 @@ KEYWORDS: dict[str, str] = {
     "mail_list_inbox": "gelen kutusu maillerim e-postalar okunmamış",
     "mail_list_sent": "gönderilen mailler giden kutusu",
     "mail_get_message": "maili oku e-posta içeriği",
+    "mail_get_thread": "mail yazışması konuşma zinciri cevap geldi mi yanıt verdi mi hoca cevap yazdı mı thread reply conversation",
     "mail_get_attachment": "mail eki ek dosya",
     "mail_search": "mail ara eski mailler e-posta arama kimden gelen",
     "mail_prepare_message": "mail yaz e-posta taslağı hocaya mail at yanıtla cevap ver maili ilet yönlendir forward",

@@ -503,5 +503,198 @@ class ItuMailClientTests(unittest.TestCase):
         self.assertEqual(factory.calls, [])
 
 
+def _thread_message(*, sender: str, to: str, subject: str, date: str, message_id: str,
+                    in_reply_to: str = "", references: str = "", body: str = "") -> bytes:
+    message = EmailMessage()
+    message["Date"] = date
+    message["From"] = sender
+    message["To"] = to
+    message["Subject"] = subject
+    message["Message-ID"] = message_id
+    if in_reply_to:
+        message["In-Reply-To"] = in_reply_to
+    if references:
+        message["References"] = references
+    message.set_content(body)
+    return message.as_bytes()
+
+
+STUDENT = "Student <student@itu.edu.tr>"
+LECTURER = "Lecturer <lecturer@itu.edu.tr>"
+
+
+class ThreadImap:
+    """A two-folder IMAP fake that evaluates OR/HEADER searches like Dovecot."""
+
+    def __init__(self, inbox: dict[str, bytes], sent: dict[str, bytes], *, sent_listed: bool = True) -> None:
+        self.folders = {"INBOX": inbox, "SENT": sent}
+        self.list_rows = [b'(\\HasNoChildren \\Sent) "/" "Sent"'] if sent_listed else []
+        self.selected = "INBOX"
+        self.select_calls: list[tuple[str, bool]] = []
+        self.uid_calls: list[tuple[object, ...]] = []
+        self.capabilities = ("IMAP4REV1", "LITERAL+")
+
+    def login(self, username, password):
+        return "OK", [b"logged in"]
+
+    def logout(self):
+        return "BYE", [b"logout"]
+
+    def list(self, reference, pattern):
+        return "OK", self.list_rows
+
+    def select(self, mailbox, readonly=False):
+        self.select_calls.append((mailbox, readonly))
+        self.selected = "INBOX" if mailbox == "INBOX" else "SENT"
+        return "OK", [str(len(self.folders[self.selected])).encode()]
+
+    def _matches(self, tokens: list[object], headers) -> tuple[bool, list[object]]:
+        head, rest = tokens[0], tokens[1:]
+        if head == "OR":
+            left, rest = self._matches(rest, headers)
+            right, rest = self._matches(rest, headers)
+            return left or right, rest
+        if head == "HEADER":
+            field, value, rest = str(rest[0]), rest[1], rest[2:]
+            needle = value.decode().strip('"').casefold()
+            return needle in str(headers.get(field) or "").casefold(), rest
+        raise AssertionError(f"unexpected search key {head!r}")
+
+    def uid(self, command, *args):
+        self.uid_calls.append((command, *args))
+        folder = self.folders[self.selected]
+        if command == "SEARCH":
+            hits = []
+            for uid, raw in folder.items():
+                headers = message_from_bytes(raw, policy=policy.default)
+                matched, rest = self._matches(list(args), headers)
+                self.assertEmpty(rest)
+                if matched:
+                    hits.append(uid)
+            return "OK", [" ".join(hits).encode()]
+        if command != "FETCH":
+            raise AssertionError(f"unexpected IMAP UID command: {command}")
+        uid, query = str(args[0]), str(args[1])
+        if uid not in folder or "PEEK" not in query:
+            return "NO", [None]
+        raw = folder[uid]
+        metadata = b"1 (UID " + uid.encode() + b" FLAGS (\\Seen) RFC822.SIZE " + str(len(raw)).encode() + b")"
+        if "HEADER.FIELDS" in query:
+            return "OK", [(metadata, raw.split(b"\n\n", 1)[0] + b"\n\n"), b")"]
+        return "OK", [(metadata, raw), b")"]
+
+    @staticmethod
+    def assertEmpty(rest) -> None:
+        if rest:
+            raise AssertionError(f"unparsed search keys {rest!r}")
+
+
+def _conversation(last_from_lecturer: bool = False) -> ThreadImap:
+    question = _thread_message(sender=STUDENT, to=LECTURER, subject="Project question",
+                               date="Mon, 05 Oct 2026 09:00:00 +0300", message_id="<q1@student>",
+                               body="Can I submit the report on Friday?")
+    answer = _thread_message(
+        sender=LECTURER, to=STUDENT, subject="Re: Project question",
+        date="Mon, 05 Oct 2026 12:00:00 +0300", message_id="<a1@lecturer>",
+        in_reply_to="<q1@student>", references="<q1@student>",
+        body="Yes, Friday is fine.\n\nOn Mon, 5 Oct 2026 Student wrote:\n> Can I submit the report on Friday?",
+    )
+    thanks = _thread_message(
+        sender=STUDENT, to=LECTURER, subject="Re: Project question",
+        date="Mon, 05 Oct 2026 13:00:00 +0300", message_id="<t1@student>",
+        in_reply_to="<a1@lecturer>", references="<q1@student> <a1@lecturer>",
+        body="Thank you!\n> Yes, Friday is fine.",
+    )
+    unrelated = _thread_message(sender=LECTURER, to=STUDENT, subject="Exam room",
+                                date="Tue, 06 Oct 2026 09:00:00 +0300", message_id="<x1@lecturer>",
+                                body="The exam is in room 101.")
+    inbox = {"201": answer, "202": unrelated}
+    sent = {"11": question, "12": thanks}
+    if last_from_lecturer:
+        # Only In-Reply-To, as some clients write it.
+        inbox["203"] = _thread_message(
+            sender=LECTURER, to=STUDENT, subject="Re: Project question",
+            date="Mon, 05 Oct 2026 15:00:00 +0300", message_id="<a2@lecturer>",
+            in_reply_to="<t1@student>", body="You're welcome.",
+        )
+    return ThreadImap(inbox, sent)
+
+
+class MailThreadTests(unittest.TestCase):
+    def client(self, fake: ThreadImap) -> ItuMailClient:
+        return ItuMailClient(username="student", password="not-a-real-secret", imap_factory=FakeFactory(fake))
+
+    def test_thread_spans_inbox_and_sent_in_date_order(self) -> None:
+        fake = _conversation()
+        result = self.client(fake).get_thread("201")
+        self.assertEqual([(m["mailbox"], m["uid"]) for m in result["messages"]],
+                         [("SENT", "11"), ("INBOX", "201"), ("SENT", "12")])
+        self.assertEqual(result["subject"], "Project question")
+        self.assertEqual(result["message_count"], 3)
+        self.assertTrue(result["last_message_from_me"])
+        self.assertEqual(result["last_sender"], STUDENT)
+        self.assertTrue(result["last_message_at"].startswith("2026-10-05T10:00"))
+        self.assertEqual(sorted(result["participants"]), [LECTURER, STUDENT])
+        self.assertEqual([m["from_me"] for m in result["messages"]], [True, False, True])
+        self.assertNotIn("x1@lecturer", repr(result))
+        self.assertTrue(result["read_only"])
+
+    def test_quoted_earlier_text_is_removed(self) -> None:
+        result = self.client(_conversation()).get_thread("201")
+        answer = result["messages"][1]
+        self.assertEqual(answer["body_text"], "Yes, Friday is fine.")
+        self.assertTrue(answer["quoted_text_removed"])
+        self.assertEqual(result["messages"][2]["body_text"], "Thank you!")
+        self.assertFalse(result["messages"][0]["quoted_text_removed"])
+
+    def test_reply_found_through_in_reply_to_from_a_sent_message(self) -> None:
+        result = self.client(_conversation(last_from_lecturer=True)).get_thread("11", mailbox="SENT")
+        self.assertEqual(result["message_count"], 4)
+        self.assertFalse(result["last_message_from_me"])
+        self.assertEqual(result["last_sender"], LECTURER)
+        self.assertEqual(result["messages"][-1]["uid"], "203")
+
+    def test_reads_are_read_only_and_bounded(self) -> None:
+        fake = _conversation(last_from_lecturer=True)
+        result = self.client(fake).get_thread("201", max_chars_per_message=200, max_messages=2)
+        self.assertTrue(all(readonly for _, readonly in fake.select_calls))
+        fetches = [str(call[2]) for call in fake.uid_calls if call[0] == "FETCH"]
+        self.assertTrue(fetches and all("PEEK" in query for query in fetches))
+        self.assertEqual({call[0] for call in fake.uid_calls}, {"SEARCH", "FETCH"})
+        self.assertEqual(result["returned_count"], 2)
+        self.assertEqual(result["omitted_older_messages"], 2)
+        self.assertEqual(result["messages"][-1]["uid"], "203")
+
+    def test_message_without_ids_is_its_own_thread(self) -> None:
+        lone = EmailMessage()
+        lone["From"] = LECTURER
+        lone["Subject"] = "Notice"
+        lone.set_content("Hello")
+        fake = ThreadImap({"5": lone.as_bytes()}, {})
+        result = self.client(fake).get_thread("5")
+        self.assertEqual(result["message_count"], 1)
+        self.assertFalse(result["last_message_from_me"])
+        self.assertFalse(any(call[0] == "SEARCH" for call in fake.uid_calls))
+
+    def test_missing_sent_folder_is_reported(self) -> None:
+        fake = _conversation()
+        fake.list_rows = []
+        result = self.client(fake).get_thread("201")
+        self.assertEqual(result["mailboxes"], ["INBOX"])
+        self.assertEqual([m["uid"] for m in result["messages"]], ["201"])
+        self.assertIn("sent folder", result["warnings"][0])
+
+    def test_unknown_uid_and_bad_input_fail(self) -> None:
+        with self.assertRaisesRegex(ItuMailError, "No message"):
+            self.client(_conversation()).get_thread("999")
+        fake = _conversation()
+        factory = FakeFactory(fake)
+        client = ItuMailClient(username="student", password="x", imap_factory=factory)
+        for uid, mailbox in (("1:*", "INBOX"), ("5", "Trash")):
+            with self.subTest(uid=uid, mailbox=mailbox), self.assertRaises(ItuMailError):
+                client.get_thread(uid, mailbox=mailbox)
+        self.assertEqual(factory.calls, [])
+
+
 if __name__ == "__main__":
     unittest.main()

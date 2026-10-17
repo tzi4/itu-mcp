@@ -11,7 +11,7 @@ from datetime import UTC, datetime, timedelta
 from email import message_from_bytes, policy
 from email.header import decode_header
 from email.message import Message
-from email.utils import parsedate_to_datetime
+from email.utils import getaddresses, parsedate_to_datetime
 from html.parser import HTMLParser
 from typing import Any, Callable, Iterator
 
@@ -36,6 +36,29 @@ MAX_SEARCH_TERM_CHARS = 200
 # Without a full-text index the server scans every body; 5,000 messages took a minute.
 BODY_SEARCH_TIMEOUT_SECONDS = 180.0
 _HEADER_SEARCH_FIELDS = ("SUBJECT", "FROM", "TO", "CC")
+# Thread reconstruction follows Message-ID, In-Reply-To and References a few
+# rounds across INBOX and the sent folder, within these bounds.
+MAX_THREAD_MESSAGES = 30
+DEFAULT_THREAD_MESSAGES = 20
+MAX_THREAD_IDS = 60
+MAX_THREAD_ROUNDS = 4
+MAX_THREAD_IDS_PER_SEARCH = 20
+MAX_THREAD_MESSAGE_BYTES = 512 * 1024
+DEFAULT_THREAD_BODY_CHARS = 2_000
+# The first header search of a folder fills the server's header cache; 30 s was seen.
+THREAD_SEARCH_TIMEOUT_SECONDS = 90.0
+MAX_THREAD_BODY_CHARS = 10_000
+_MESSAGE_ID = re.compile(r"<[^<>\s\"\\]{1,250}>")
+_THREAD_HEADER_FIELDS = "DATE FROM TO CC SUBJECT MESSAGE-ID IN-REPLY-TO REFERENCES"
+# Where a reply starts quoting the earlier message: "On ... wrote:", Turkish
+# "... tarihinde ... yazdı:", Outlook's original-message separator, and an
+# Outlook header block ("From:" followed by "Sent:"/"Date:" or the Turkish names).
+_QUOTE_START = re.compile(
+    r"^(?:on\s.{0,300}\swrote:|.{0,300}\byazd[ıi]:|-{2,}\s*(?:original message|orijinal ileti|özgün ileti)\s*-{2,})\s*$"
+    r"|^(?:from|kimden):.*\n(?:sent|date|gönderildi|gönderilme tarihi|tarih):",
+    re.IGNORECASE | re.MULTILINE,
+)
+_ADDRESS_IN_HEADER = re.compile(r"[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}")
 
 # Conventional names are used only when LIST does not advertise a \\Sent role.
 _SENT_NAMES = (
@@ -471,6 +494,35 @@ def _format_imap_search_date(value: datetime) -> str:
     return f"{value.day:02d}-{month}-{value.year:04d}"
 
 
+def _message_ids(value: Any, *, limit: int = 20) -> list[str]:
+    """Message IDs in a header value, the last ``limit`` of them (the nearest ancestors)."""
+    return _MESSAGE_ID.findall(str(value or ""))[-limit:]
+
+
+def _without_quoted_text(body: str) -> tuple[str, bool]:
+    """Drop the quoted earlier message from a reply so each message is read once."""
+    match = _QUOTE_START.search(body)
+    kept = body[: match.start()] if match else body
+    lines = [line for line in kept.split("\n") if not line.lstrip().startswith(">")]
+    text = _clean_body_text("\n".join(lines))
+    # A message that is only a quote keeps its text rather than becoming empty.
+    if not text:
+        return body, False
+    return text, text != _clean_body_text(body)
+
+
+def _addresses(*values: str) -> set[str]:
+    return {address.casefold() for value in values for address in _ADDRESS_IN_HEADER.findall(value or "")}
+
+
+def _or_criteria(terms: list[list[bytes | str]]) -> list[bytes | str]:
+    """Join IMAP search keys with prefix ORs: ``OR a OR b c``."""
+    criteria: list[bytes | str] = []
+    for index, term in enumerate(terms):
+        criteria += (["OR"] if index < len(terms) - 1 else []) + term
+    return criteria
+
+
 def _extract_pdf_text(data: bytes, *, max_chars: int) -> dict[str, Any]:
     try:
         from pypdf import PdfReader
@@ -848,6 +900,171 @@ class ItuMailClient:
             "returned_count": min(limit, len(results)),
             "messages": results[:limit],
         }
+
+    def own_address(self) -> str:
+        """The user's own mail address, as the sender of their messages."""
+        return self.username if "@" in self.username else f"{self.username}@itu.edu.tr"
+
+    @staticmethod
+    def _thread_headers(connection: Any, uid: str) -> dict[str, Any] | None:
+        status, data = connection.uid(
+            "FETCH", uid, f"(UID BODY.PEEK[HEADER.FIELDS ({_THREAD_HEADER_FIELDS})])",
+        )
+        if status != "OK":
+            return None
+        try:
+            _, raw_headers = _payload_tuple(data)
+        except ItuMailError:
+            return None
+        message = message_from_bytes(raw_headers, policy=policy.default)
+        return {
+            "own": _message_ids(message.get("Message-ID"), limit=1),
+            "related": _message_ids(message.get("In-Reply-To"), limit=5)
+            + _message_ids(message.get("References")),
+        }
+
+    @staticmethod
+    def _thread_search(connection: Any, ids: list[str]) -> list[str]:
+        """UIDs in the selected mailbox that carry or refer to any of ``ids``."""
+        terms: list[list[bytes | str]] = []
+        for message_id in ids:
+            value = _search_string(message_id, False)
+            terms += [["HEADER", "Message-ID", value], ["HEADER", "In-Reply-To", value],
+                      ["HEADER", "References", value]]
+        status, data = connection.uid("SEARCH", *_or_criteria(terms))
+        if status != "OK":
+            raise ItuMailError("İTÜ Mail could not search for the conversation.")
+        return sorted({item.decode("ascii") for item in ((data or [b""])[0] or b"").split()
+                       if item.isdigit()}, key=int)
+
+    def get_thread(
+        self,
+        uid: str,
+        *,
+        mailbox: str = "INBOX",
+        max_chars_per_message: int = DEFAULT_THREAD_BODY_CHARS,
+        max_messages: int = DEFAULT_THREAD_MESSAGES,
+    ) -> dict[str, Any]:
+        """Rebuild one conversation across INBOX and the sent folder, oldest first.
+
+        Starting from one message, the thread grows through Message-ID,
+        In-Reply-To and References: every message that carries or refers to a
+        known ID joins it, and its own IDs are searched next. Mailboxes are
+        selected read-only and bodies are read with BODY.PEEK, so no flag
+        changes.
+        """
+        mailbox = _mailbox_role(mailbox)
+        uid = str(uid).strip()
+        if not re.fullmatch(r"[1-9][0-9]{0,19}", uid):
+            raise ItuMailError("Message UID must be a positive integer returned by a mail listing.")
+        max_chars = max(200, min(int(max_chars_per_message), MAX_THREAD_BODY_CHARS))
+        max_messages = max(1, min(int(max_messages), MAX_THREAD_MESSAGES))
+
+        warnings: list[str] = []
+        with self._connection(timeout=THREAD_SEARCH_TIMEOUT_SECONDS) as connection:
+            self._select_mailbox(connection, mailbox)
+            seed = self._thread_headers(connection, uid)
+            if seed is None:
+                raise ItuMailError(f"No message with that UID was found in {mailbox}.")
+            mailboxes = ["INBOX"]
+            try:
+                self._select_mailbox(connection, "SENT")
+                mailboxes.append("SENT")
+            except ItuMailError:
+                warnings.append("The sent folder could not be opened, so your own replies may be missing.")
+
+            found: dict[tuple[str, str], dict[str, Any]] = {(mailbox, uid): seed}
+            known = list(dict.fromkeys(seed["own"] + seed["related"]))[:MAX_THREAD_IDS]
+            pending = list(known)
+            rounds = 0
+            while pending and rounds < MAX_THREAD_ROUNDS and len(found) <= MAX_THREAD_MESSAGES * 2:
+                rounds += 1
+                batch, pending = pending[:MAX_THREAD_IDS_PER_SEARCH], pending[MAX_THREAD_IDS_PER_SEARCH:]
+                for name in mailboxes:
+                    self._select_mailbox(connection, name)
+                    for match in self._thread_search(connection, batch):
+                        if (name, match) in found:
+                            continue
+                        headers = self._thread_headers(connection, match)
+                        if headers is None:
+                            continue
+                        found[(name, match)] = headers
+                        for message_id in headers["own"] + headers["related"]:
+                            if message_id not in known and len(known) < MAX_THREAD_IDS:
+                                known.append(message_id)
+                                pending.append(message_id)
+            if pending:
+                warnings.append("The conversation is long; its oldest branches may be missing.")
+
+            messages = self._thread_messages(connection, found, max_chars)
+        return self._thread_result(messages, mailboxes, max_messages, warnings)
+
+    def _thread_messages(self, connection: Any, found: dict[tuple[str, str], dict[str, Any]],
+                         max_chars: int) -> list[dict[str, Any]]:
+        own = self.own_address().casefold()
+        messages: list[dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        for name in ("INBOX", "SENT"):
+            uids = [key[1] for key in found if key[0] == name]
+            if not uids:
+                continue
+            self._select_mailbox(connection, name)
+            for match in sorted(uids, key=int):
+                status, data = connection.uid(
+                    "FETCH", match, f"(UID FLAGS RFC822.SIZE BODY.PEEK[]<0.{MAX_THREAD_MESSAGE_BYTES}>)",
+                )
+                if status != "OK":
+                    continue
+                metadata, raw = _payload_tuple(data)
+                message = message_from_bytes(raw, policy=policy.default)
+                headers = _message_headers(message)
+                # A message filed in both folders, such as one sent to yourself, appears once.
+                if headers["message_id"] and headers["message_id"] in seen_ids:
+                    continue
+                seen_ids.add(headers["message_id"])
+                body, attachments, _ = _message_body(message, max_chars=MAX_BODY_CHARS)
+                body, quoted_removed = _without_quoted_text(body)
+                declared = _metadata_number(metadata, b"RFC822.SIZE")
+                messages.append({
+                    "mailbox": name,
+                    "uid": str(_metadata_number(metadata, b"UID") or match),
+                    **headers,
+                    "from_me": name == "SENT" or own in _addresses(headers["from"]),
+                    "unread": "\\Seen" not in _metadata_flags(metadata),
+                    "body_text": body[:max_chars],
+                    "body_truncated": len(body) > max_chars or bool(declared and declared > len(raw)),
+                    "quoted_text_removed": quoted_removed,
+                    "attachment_count": len(attachments),
+                })
+        messages.sort(key=lambda item: (item.get("date_iso") or "", item["mailbox"], int(item["uid"])))
+        return messages
+
+    @staticmethod
+    def _thread_result(messages: list[dict[str, Any]], mailboxes: list[str], max_messages: int,
+                       warnings: list[str]) -> dict[str, Any]:
+        participants: dict[str, str] = {}
+        for item in messages:
+            for name, address in getaddresses([item.get(field) or "" for field in ("from", "to", "cc")]):
+                if "@" in address:
+                    participants.setdefault(address.casefold(), f"{name} <{address}>" if name else address)
+        returned = messages[-max_messages:]
+        last = messages[-1] if messages else {}
+        result: dict[str, Any] = {
+            "mailboxes": mailboxes,
+            "read_only": True,
+            "subject": messages[0].get("subject") if messages else "",
+            "participants": list(participants.values()),
+            "message_count": len(messages),
+            "returned_count": len(returned),
+            "omitted_older_messages": len(messages) - len(returned),
+            "last_sender": last.get("from"),
+            "last_message_at": last.get("date_iso") or last.get("date"),
+            "last_message_from_me": bool(last.get("from_me")),
+            "messages": returned,
+        }
+        if warnings:
+            result["warnings"] = warnings
+        return result
 
     def reply_headers(self, uid: str) -> dict[str, str]:
         """Read the threading headers of one INBOX message without changing its flags."""

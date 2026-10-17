@@ -207,6 +207,7 @@ own routes such as `/Sinif/<id>.<id>/Notlar`, `/MesajPanosu`, `/Yoklama`, and
 - `mail_list_inbox` — list bounded message headers and UIDs without changing unread state.
 - `mail_list_sent` — list saved sent-message headers and UIDs from the server's sent folder.
 - `mail_get_message` — read one bounded text body and attachment metadata with `BODY.PEEK`. Use `mailbox="SENT"` for a UID from `mail_list_sent`; the default is `INBOX`.
+- `mail_get_thread` — read the whole conversation around one message across `INBOX` and the sent folder, oldest first. The thread follows `Message-ID`, `In-Reply-To` and `References` header searches; each message has bounded body text with the quoted earlier message removed, and `last_message_from_me` tells whether the other side has replied yet. Reads use `BODY.PEEK`.
 - `mail_get_attachment` — inspect one size-limited PDF, JPEG, or PNG attachment in memory, using the same `mailbox` as the message read.
 - `mail_search` — search the whole inbox and sent folder on the server by words, sender, recipient, subject and dates; `in_body=true` also searches bodies.
 - `mail_prepare_message` — build a plain-text message, optionally a reply, a forward (`forward_uid`) or with attachments, and return its preview and a one-time `draft_id`. Nothing is sent.
