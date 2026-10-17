@@ -201,6 +201,8 @@ def build_app() -> Starlette:
     if extended and not configured_api_key():
         raise RuntimeError("Remote file/write tools require API-key authentication.")
     app_logic = RemoteNinovaMcpApp() if extended else NinovaMcpApp()
+    app_logic.remote_transport = True
+    app_logic.remote_writes_enabled = remote_file_capabilities()[1]
     mcp_mount_path = _normalize_mount_path(os.getenv("NINOVA_REMOTE_MCP_PATH"), "/mcp")
     mcp = _build_fastmcp(app_logic, mount_path=mcp_mount_path)
     api_key = configured_api_key()

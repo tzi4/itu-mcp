@@ -52,6 +52,10 @@
       "description": "Check whether ITU credentials are configured and a fresh Ninova and OBS login works; debug=true adds diagnostics."
     },
     {
+      "name": "itu_health",
+      "description": "Check every ITU service concurrently: configured, status and latency, plus the enabled write actions and server version."
+    },
+    {
       "name": "mail_status",
       "description": "Check the verified-TLS, read-only ITU IMAP connection and return inbox counts."
     },

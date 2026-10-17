@@ -12,8 +12,8 @@ from __future__ import annotations
 # name -> (one-line description, tool names). Order is the display order.
 DOMAINS: dict[str, tuple[str, tuple[str, ...]]] = {
     "core": (
-        "Login and session diagnostics",
-        ("auth_status", "refresh_session", "obs_auth_status"),
+        "Login, session and service health diagnostics",
+        ("auth_status", "refresh_session", "obs_auth_status", "itu_health"),
     ),
     "ninova": (
         "Ninova LMS courses: announcements, files, assignments, LMS grades, message board, "
@@ -115,6 +115,7 @@ KEYWORDS: dict[str, str] = {
     "auth_status": "giriş durumu oturum login kontrol",
     "refresh_session": "oturumu yenile tekrar giriş",
     "obs_auth_status": "obs giriş durumu",
+    "itu_health": "sağlık durumu servisler çalışıyor mu erişilebilir mi gecikme yazma izinleri sürüm health status latency reachable uptime write capability version",
     "get_dashboard": "genel durum özet ana sayfa derslerim ödevlerim duyurular overview",
     "list_courses": "derslerim ders listesi kayıtlı olduğum dersler ninova dersleri",
     "get_course_announcements": "ders duyurusu duyurular hoca duyurusu",
