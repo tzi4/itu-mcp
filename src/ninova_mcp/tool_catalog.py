@@ -117,6 +117,7 @@ WRITE_OPERATIONS: frozenset[str] = frozenset({
     "obs_save_registration_draft",
     "mail_prepare_message", "mail_send_message", "mail_save_draft",
     "help_prepare_ticket", "help_submit_ticket",
+    "ninova_prepare_message_reply", "ninova_post_message_reply",
 })
 EFFECTS = ("read", "write")
 
