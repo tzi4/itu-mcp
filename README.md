@@ -8,21 +8,27 @@
 
 # ITU MCP + PaperBridge
 
+ITU MCP + PaperBridge is an MCP server that connects your AI assistant to the
+digital services of Istanbul Technical University that you can sign in to with your
+ITU email and password, your student number and your library PIN. These include
+Ninova, Kepler (OBS), Portal, ITU Mail, the help desk and the library, as well as
+publisher sites where ITU's subscriptions let you read and download papers. It runs
+on your own computer or server.
+
 This project is a fork of [ITU MCP](https://github.com/yatuk/itu-mcp) by
 [yatuk](https://github.com/yatuk), which I've also contributed to. ITU MCP itself
 builds on [Ninova MCP](https://github.com/hikmedit/ninova-mcp) by
-[Hikmet Gultekin](https://github.com/hikmedit). It connects your AI assistant to
-Istanbul Technical University services such as Ninova, OBS, Portal, ITU Mail and the
-library, and runs on your own computer or server.
+[Hikmet Gultekin](https://github.com/hikmedit).
 
 Both earlier projects are great if you mainly want to read your ITU data. This fork
 adds three things that neither of them offers:
 
 1. **Write actions.** Ninova MCP is read-only, and ITU MCP offers a few write actions
    to local clients only. Here your assistant can submit an assignment, send an email,
-   open a help ticket and save an OBS registration draft, whether the server runs on
-   your computer or on your own server, with whichever assistant you use. Every write
-   action asks for your explicit confirmation first.
+   reply on a Ninova message board, open a help ticket and save an OBS registration
+   draft, whether the server runs on your computer or on your own server, with
+   whichever assistant you use. Every write action asks for your explicit
+   confirmation first.
 2. **PaperBridge.** Your assistant can read papers behind publisher paywalls through
    your own university access, not only open-access papers.
 3. **A router that saves tokens and time.** Both earlier projects list each
@@ -91,39 +97,29 @@ you, or you want a strictly read-only server, have a look at
 [Ninova MCP](https://github.com/hikmedit/ninova-mcp) too. This fork keeps the
 original Git history, MIT license and attribution.
 
-## What is ITU MCP?
+## What can you ask?
 
-ITU MCP is a small server that lets your AI assistant answer questions about your
-courses, grades, schedule and campus life from the real ITU systems, in plain
-language.
+You ask your assistant in plain language; it fetches the real data from ITU over
+the [Model Context Protocol](https://modelcontextprotocol.io) and answers. Without
+a login, the public tools still work: course and final exam schedules, building
+codes, shuttles, sports facilities, announcements and the library catalog. The
+first rows below are what this fork adds.
 
-With your credentials (usually `yourname@itu.edu.tr`), it reads data from
-**Ninova** (the course platform), **OBS** (the student information system) and
-**Portal**. Without credentials, it still reaches public sources such as course
-and final exam schedules, building codes, shuttles, sports facilities,
-announcements and the library catalog. It exposes the results as structured tools
-over the [Model Context Protocol](https://modelcontextprotocol.io). You ask your
-assistant, and it fetches the real data and answers.
-
-| What you need | How ITU MCP answers |
+| What you ask | What the server does |
 |:---|---|
-| "Which assignments are due this week?" | Ninova assignment and due-date tools |
-| "Grades or attendance for course X?" | OBS term grades, letter grades and attendance |
-| "Transcript, advisor or internship?" | OBS profile, advisor, internship and transcript PDF |
-| "What's for lunch today? What's my card balance?" | ITU Portal menu, card and notification tools |
-| "When is my final? Are there open seats?" | Public OBS final exam and course schedule tools |
-| "Which MAT 201E section has the better-rated instructor?" | Public OBS sections with anonymous student ratings from notkutusu.com HocaMetre; off until you turn it on |
-| "When is the next shuttle? When does the pool close?" | Campus service tools |
-| "Does the library have this book?" | Public catalog search and copy status |
-| "Read my latest emails, tell me which ones matter, and summarize their PDF or image attachments." | Read-only ITU Mail tools and PDF/JPEG/PNG attachment inspection |
-| "Read the last email I sent and remind me what I asked for." | Read-only sent-mail listing and message reading |
-| "Put my classes, finals and assignment deadlines in my phone's calendar." | One .ics file with weekly classes, exams and deadlines |
-| "Find the emails from my Linear Algebra course two years ago." | Server-side search across the inbox and sent folder |
-| "Reply to my instructor's last email, attach my report and show me before sending." | A previewed draft, sent only after you approve it |
+| "Research this topic. Through ITU MCP + PaperBridge, also go through IEEE Xplore, Springer and the publishers I can reach through ITU's OpenAthens, find the papers that aren't openly available and include them in your research." | Paper search, DOI lookup and full-text retrieval through your own university access |
+| "Scan Ninova for new assignments, download the files, work through the questions and show me a draft. Upload the reviewed file after I confirm." | Assignment discovery, file download and submission; uploads need your confirmation |
+| "Reply to my instructor's last email, attach my report and show me before sending." | A previewed reply, sent or saved to Drafts only after you approve it |
+| "Answer the question on my course's message board, but show me first." | Ninova message board threads and a reply posted only after you approve it |
 | "My VPN won't connect. Open a help ticket with this screenshot." | Help desk unit, category and form fields, submitted after you approve |
-| "Scan Ninova for new assignments. Download any new files, start working through the questions, and send me a draft to review." | Assignment discovery and file download; your AI assistant prepares the draft |
-| "Use PaperBridge to read this IEEE or Springer paper through my university access and explain its equations and figures." | DOI lookup, configured institutional retrieval and PDF text/page tools |
-| "Download this assignment, prepare a solution, and upload the reviewed file to Ninova after I confirm." | Assignment files and submission tools; uploads must be enabled and require `confirm=true` |
+| "Find the emails from my Linear Algebra course two years ago." | Search across the inbox and sent folder |
+| "Put my classes, finals and assignment deadlines in my phone's calendar." | One .ics file with weekly classes, exams and deadlines |
+| "Which MAT 201E section has the better-rated instructor?" | Public sections with anonymous student ratings from notkutusu.com HocaMetre |
+| "Which assignments are due this week? Any new announcements?" | Ninova assignments, due dates and announcements |
+| "Grades or attendance for course X? My transcript or advisor?" | Ninova and OBS grades, attendance, profile, advisor and transcript PDF |
+| "Read my latest emails, tell me which ones matter, and summarize their attachments." | ITU Mail reading and PDF/JPEG/PNG attachment inspection |
+| "When is my final? Are there open seats?" | Public final exam and course schedule tools |
+| "What's for lunch, what's my card balance, when is the next shuttle?" | ITU Portal and campus service tools |
 
 These are requests you can give your AI assistant. ITU MCP provides the university
 data and tools; your assistant connects the steps, drafts answers and explains
@@ -242,12 +238,24 @@ it offers to add the server to Claude Desktop, Cursor or Codex if it finds them,
 and prints the `claude mcp add` command for Claude Code. Leave the login empty if
 you only want the public tools.
 
-For an always-on Linux server such as a Raspberry Pi, `scripts/install-server.sh`
-sets up a systemd service instead. Updating is one command too: `itu-mcp --update`
-on a computer, or the same install command again on Windows or a server. When there
-is an update, your assistant tells you once, with the exact command for your
-install; the server checks GitHub at most once a day, and `ITU_MCP_UPDATE_CHECK=0`
-turns that off.
+You only do this once. Restart your AI app afterwards; from then on the app starts
+the server by itself whenever it needs it, so there is nothing to run after you
+restart your computer.
+
+**Which apps?** On your computer the server works with apps that start it
+themselves: Claude Desktop (in its chat), Claude Code (also in Claude Desktop's
+Code tab), Codex and Cursor. ChatGPT, on the web, in its desktop app and on your
+phone, connects to MCP servers only by URL, so it cannot start a program on your
+computer. To use ChatGPT, or any assistant on your phone, run the server on an
+always-on machine with your own HTTPS address. That is how I use it, from my
+Raspberry Pi: `scripts/install-server.sh` sets up the systemd service, and the
+[installation guide](docs/installation.md#on-a-linux-server) covers the HTTPS part.
+
+Updating is one command too: `itu-mcp --update` on a computer, or the same install
+command again on Windows or a server. When there is an update, your assistant tells
+you with the exact command for your install: once when it is found, then at most
+every three days until you update. The server checks GitHub at most once a day, and
+`ITU_MCP_UPDATE_CHECK=0` turns that off.
 
 **The `itu-mcp` package on PyPI and the older upstream packages are not
 distributions of this fork.** The [installation guide](docs/installation.md) covers
